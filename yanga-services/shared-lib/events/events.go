@@ -22,21 +22,38 @@ const (
 	SubjectRatingCreated  = "rating.created"
 )
 
-type EventBus struct {
+type EventBus interface {
+	Publish(subject string, data interface{}) error
+	Subscribe(subject string, handler func([]byte)) (*nats.Subscription, error)
+	QueueSubscribe(subject, queue string, handler func([]byte)) (*nats.Subscription, error)
+	Close()
+}
+
+type NATSEventBus struct {
 	conn *nats.Conn
 }
 
-func NewEventBus(natsURL string) (*EventBus, error) {
+func NewEventBus(natsURL string) (*NATSEventBus, error) {
 	nc, err := nats.Connect(natsURL)
 	if err != nil {
 		return nil, err
 	}
 
 	log.Printf("Connected to NATS at %s", natsURL)
-	return &EventBus{conn: nc}, nil
+	return &NATSEventBus{conn: nc}, nil
 }
 
-func (eb *EventBus) Publish(subject string, data interface{}) error {
+func NewNATSEventBus(natsURL string) (EventBus, error) {
+	nc, err := nats.Connect(natsURL)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("✅ Connected to NATS at %s", natsURL)
+	return &NATSEventBus{conn: nc}, nil
+}
+
+func (eb *NATSEventBus) Publish(subject string, data interface{}) error {
 	payload, err := json.Marshal(data)
 	if err != nil {
 		return err
@@ -45,19 +62,19 @@ func (eb *EventBus) Publish(subject string, data interface{}) error {
 	return eb.conn.Publish(subject, payload)
 }
 
-func (eb *EventBus) Subscribe(subject string, handler func([]byte)) (*nats.Subscription, error) {
+func (eb *NATSEventBus) Subscribe(subject string, handler func([]byte)) (*nats.Subscription, error) {
 	return eb.conn.Subscribe(subject, func(msg *nats.Msg) {
 		handler(msg.Data)
 	})
 }
 
-func (eb *EventBus) QueueSubscribe(subject, queue string, handler func([]byte)) (*nats.Subscription, error) {
+func (eb *NATSEventBus) QueueSubscribe(subject, queue string, handler func([]byte)) (*nats.Subscription, error) {
 	return eb.conn.QueueSubscribe(subject, queue, func(msg *nats.Msg) {
 		handler(msg.Data)
 	})
 }
 
-func (eb *EventBus) Close() {
+func (eb *NATSEventBus) Close() {
 	if eb.conn != nil {
 		eb.conn.Close()
 	}
@@ -134,4 +151,31 @@ type RatingCreatedEvent struct {
 	TripID   string `json:"trip_id"`
 	RatedID  string `json:"rated_id"`
 	Rating   int    `json:"rating"`
+}
+
+// Additional payload types for compatibility
+type UserCreatedPayload struct {
+	UserID      string    `json:"user_id"`
+	PhoneNumber string    `json:"phone_number"`
+	Role        string    `json:"role"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+type DriverStatusPayload struct {
+	DriverID string `json:"driver_id"`
+	IsOnline bool   `json:"is_online"`
+}
+
+type DriverLocationPayload struct {
+	DriverID  string  `json:"driver_id"`
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+}
+
+type RatingCreatedPayload struct {
+	RatingID  string `json:"rating_id"`
+	TripID    string `json:"trip_id"`
+	RatedID   string `json:"rated_id"`
+	RaterType string `json:"rater_type"`
+	Rating    int32  `json:"rating"`
 }

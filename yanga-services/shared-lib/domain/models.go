@@ -103,9 +103,109 @@ type ResetPasswordRequest struct {
 	NewPassword string `json:"new_password" validate:"required,min=6" example:"newpassword123"`
 }
 
+type RegisterRequest struct {
+	PhoneNumber string `json:"phone_number" validate:"required" example:"+254712345678"`
+	Email       string `json:"email" validate:"omitempty,email" example:"user@example.com"`
+	Password    string `json:"password" validate:"required,min=6" example:"password123"`
+	FullName    string `json:"full_name" validate:"required" example:"John Doe"`
+	Role        string `json:"role" validate:"required,oneof=user driver" example:"user"`
+}
+
+type LoginRequest struct {
+	PhoneNumber string `json:"phone_number" validate:"required" example:"+254712345678"`
+	Password    string `json:"password" validate:"required" example:"password123"`
+}
+
+type VerifyPhoneRequest struct {
+	PhoneNumber string `json:"phone_number" validate:"required" example:"+254712345678"`
+	OTP         string `json:"otp" validate:"required" example:"123456"`
+}
+
+type ResendOTPRequest struct {
+	PhoneNumber string `json:"phone_number" validate:"required" example:"+254712345678"`
+}
+
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token" validate:"required"`
+}
+
+type TokenResponse struct {
+	AccessToken string `json:"access_token"`
+}
+
 type AuthResponse struct {
-	Token string `json:"token" example:"eyJhbGciOiJIUzI1NiIs..."`
-	User  User   `json:"user"`
+	User         UserResponse `json:"user"`
+	AccessToken  string       `json:"access_token"`
+	RefreshToken string       `json:"refresh_token"`
+}
+
+type UserResponse struct {
+	ID          string `json:"id"`
+	PhoneNumber string `json:"phone_number"`
+	Email       string `json:"email,omitempty"`
+	FullName    string `json:"full_name"`
+	Role        string `json:"role"`
+	IsVerified  bool   `json:"is_verified"`
+	IsActive    bool   `json:"is_active"`
+}
+
+type MessageResponse struct {
+	Message string `json:"message"`
+}
+
+type ToggleStatusRequest struct {
+	IsOnline bool `json:"is_online" example:"true"`
+}
+
+type CreateDriverProfileRequest struct {
+	UserID             string `json:"user_id" validate:"required"`
+	LicenseNumber      string `json:"license_number" validate:"required"`
+	VehicleType        string `json:"vehicle_type" validate:"required"`
+	VehicleModel       string `json:"vehicle_model" validate:"required"`
+	VehicleColor       string `json:"vehicle_color" validate:"required"`
+	VehiclePlateNumber string `json:"vehicle_plate_number" validate:"required"`
+}
+
+type DriverProfileResponse struct {
+	ID                 string  `json:"id"`
+	UserID             string  `json:"user_id"`
+	LicenseNumber      string  `json:"license_number"`
+	VehicleType        string  `json:"vehicle_type"`
+	VehicleModel       string  `json:"vehicle_model"`
+	VehicleColor       string  `json:"vehicle_color"`
+	VehiclePlateNumber string  `json:"vehicle_plate_number"`
+	IsOnline           bool    `json:"is_online"`
+	IsApproved         bool    `json:"is_approved"`
+	Rating             float64 `json:"rating"`
+	TotalTrips         int32   `json:"total_trips"`
+	CurrentLatitude    float64 `json:"current_latitude,omitempty"`
+	CurrentLongitude   float64 `json:"current_longitude,omitempty"`
+}
+
+type NearbyDriverResponse struct {
+	DriverID           string  `json:"driver_id"`
+	UserID             string  `json:"user_id"`
+	FullName           string  `json:"full_name"`
+	PhoneNumber        string  `json:"phone_number"`
+	VehicleType        string  `json:"vehicle_type"`
+	VehicleModel       string  `json:"vehicle_model"`
+	VehicleColor       string  `json:"vehicle_color"`
+	VehiclePlateNumber string  `json:"vehicle_plate_number"`
+	Rating             float64 `json:"rating"`
+	CurrentLatitude    float64 `json:"current_latitude"`
+	CurrentLongitude   float64 `json:"current_longitude"`
+	Distance           float64 `json:"distance"`
+}
+
+type RatingResponse struct {
+	ID        string    `json:"id"`
+	TripID    string    `json:"trip_id"`
+	RaterID   string    `json:"rater_id"`
+	RatedID   string    `json:"rated_id"`
+	RaterType string    `json:"rater_type"`
+	Rating    int32     `json:"rating"`
+	Comment   string    `json:"comment,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // Trip DTOs

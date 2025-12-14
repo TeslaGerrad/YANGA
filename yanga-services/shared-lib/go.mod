@@ -3,6 +3,7 @@ module github.com/namycodes/yanga-services/shared-lib
 go 1.21
 
 require (
+	github.com/casbin/casbin/v2 v2.135.0
 	github.com/golang-jwt/jwt/v5 v5.2.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.5.3
@@ -11,6 +12,8 @@ require (
 )
 
 require (
+	github.com/bmatcuk/doublestar/v4 v4.6.1 // indirect
+	github.com/casbin/govaluate v1.3.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect

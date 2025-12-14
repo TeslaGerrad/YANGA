@@ -1,35 +1,35 @@
 package middleware
-package middleware
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/casbin/casbin/v2"
-	"github.com/namycodes/yanga-services/shared-lib/utils"
 )
 
 func CasbinMiddleware(enforcer *casbin.Enforcer) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			claims := GetUserClaims(r.Context())
-			if claims == nil {
-				utils.RespondWithError(w, http.StatusUnauthorized, "Unauthorized")
+			// Get user role from context
+			role := r.Context().Value("role")
+			if role == nil {
+				role = "guest"
+			}
+
+			// Check permission
+			allowed, err := enforcer.Enforce(role, r.URL.Path, r.Method)
+			if err != nil {
+				log.Printf("Casbin error: %v", err)
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
 				return
 			}
 
+			if !allowed {
+				http.Error(w, "Forbidden", http.StatusForbidden)
+				return
+			}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-}	}		})			next.ServeHTTP(w, r)			}				return				utils.RespondWithError(w, http.StatusForbidden, "Access denied")			if !allowed {			}				return				utils.RespondWithError(w, http.StatusInternalServerError, "Authorization check failed")			if err != nil {			allowed, err := enforcer.Enforce(claims.Role, r.URL.Path, r.Method)
+			next.ServeHTTP(w, r)
+		})
+	}
+}
