@@ -1,0 +1,40 @@
+package middleware
+package middleware
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+}	})		)			time.Since(start),			rw.statusCode,			r.RequestURI,			r.Method,			"%s %s %d %s",		log.Printf(		next.ServeHTTP(rw, r)		}			statusCode:     http.StatusOK,			ResponseWriter: w,		rw := &responseWriter{		start := time.Now()	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {func LoggingMiddleware(next http.Handler) http.Handler {}	rw.ResponseWriter.WriteHeader(code)	rw.statusCode = codefunc (rw *responseWriter) WriteHeader(code int) {}	statusCode int	http.ResponseWritertype responseWriter struct {)	"time"	"net/http"	"log"import (

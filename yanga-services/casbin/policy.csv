@@ -1,0 +1,21 @@
+p, user, /api/v1/trips, POST
+p, user, /api/v1/trips/*, GET
+p, user, /api/v1/trips/my, GET
+p, user, /api/v1/trips/*/cancel, POST
+p, user, /api/v1/trips/active, GET
+p, user, /api/v1/ratings, POST
+p, user, /api/v1/ratings/my, GET
+
+p, driver, /api/v1/driver/status, PUT
+p, driver, /api/v1/driver/location, PUT
+p, driver, /api/v1/driver/requests, GET
+p, driver, /api/v1/driver/trips/accept, POST
+p, driver, /api/v1/driver/trips/*/start, POST
+p, driver, /api/v1/driver/trips/*/complete, POST
+p, driver, /api/v1/driver/trips/*/cancel, POST
+p, driver, /api/v1/driver/trips/my, GET
+p, driver, /api/v1/driver/trips/active, GET
+p, driver, /api/v1/ratings, POST
+p, driver, /api/v1/ratings/my, GET
+
+p, admin, /api/v1/*, *
