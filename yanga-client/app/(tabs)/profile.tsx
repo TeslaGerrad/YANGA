@@ -83,7 +83,7 @@ export default function ProfileScreen() {
         <Card style={styles.userCard} elevated>
           <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
             <Text style={[styles.avatarText, { color: colors.secondary }]}>
-              {user?.name.charAt(0).toUpperCase()}
+              {user?.name!.charAt(0).toUpperCase()}
             </Text>
           </View>
           <View style={styles.userInfo}>
@@ -117,7 +117,7 @@ export default function ProfileScreen() {
           </View>
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: colors.text }]}>$0.00</Text>
+            <Text style={[styles.statValue, { color: colors.text }]}>K0.00</Text>
             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
               Total Spent
             </Text>

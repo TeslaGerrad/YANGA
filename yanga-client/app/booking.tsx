@@ -144,13 +144,15 @@ export default function BookingScreen() {
               {VEHICLE_TYPES.map((vehicle) => (
                 <Card
                   key={vehicle.id}
-                  style={[
-                    styles.vehicleCard,
-                    selectedVehicle?.id === vehicle.id && {
-                      borderColor: colors.primary,
-                      borderWidth: 2,
-                    },
-                  ]}
+                  style={
+                    selectedVehicle?.id === vehicle.id
+                      ? {
+                          ...styles.vehicleCard,
+                          borderColor: colors.primary,
+                          borderWidth: 2,
+                        }
+                      : styles.vehicleCard
+                  }
                   onPress={() => handleVehicleSelect(vehicle)}
                 >
                   <View style={styles.vehicleInfo}>
@@ -170,7 +172,7 @@ export default function BookingScreen() {
                   </View>
                   {estimatedFare && selectedVehicle?.id === vehicle.id && (
                     <Text style={[styles.vehiclePrice, { color: colors.text }]}>
-                      ${(estimatedFare * vehicle.priceMultiplier).toFixed(2)}
+                      K{(estimatedFare * vehicle.priceMultiplier).toFixed(2)}
                     </Text>
                   )}
                 </Card>
@@ -185,7 +187,7 @@ export default function BookingScreen() {
                     Estimated Fare
                   </Text>
                   <Text style={[styles.summaryValue, { color: colors.text }]}>
-                    ${estimatedFare.toFixed(2)}
+                    K{estimatedFare.toFixed(2)}
                   </Text>
                 </View>
                 <View style={styles.summaryRow}>
@@ -214,7 +216,7 @@ export default function BookingScreen() {
       {pickupAddress && destinationAddress && selectedVehicle && (
         <View style={[styles.bottomAction, { backgroundColor: colors.background }]}>
           <Button
-            title={`Book ${selectedVehicle.name} - $${estimatedFare?.toFixed(2)}`}
+            title={`Book ${selectedVehicle.name} - K${estimatedFare?.toFixed(2)}`}
             onPress={handleBookRide}
             loading={loading}
             style={styles.bookButton}

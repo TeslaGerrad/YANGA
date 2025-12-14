@@ -1,2 +1,5 @@
 *.env
 tmp
+node_modules/
+yanga-client/node_modules/
+yanga-admin/node_modules/

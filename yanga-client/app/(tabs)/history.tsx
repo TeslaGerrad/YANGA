@@ -152,7 +152,7 @@ export default function HistoryScreen() {
                   </Text>
                 </View>
                 <Text style={[styles.fare, { color: colors.text }]}>
-                  ${ride.fare.toFixed(2)}
+                  K{ride.fare.toFixed(2)}
                 </Text>
               </View>
             </Card>

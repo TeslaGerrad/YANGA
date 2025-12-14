@@ -13,6 +13,7 @@ import {
     Text,
     TouchableOpacity,
     View,
+    ViewStyle,
 } from 'react-native';
 
 const CANCELLATION_REASONS = [
@@ -96,7 +97,7 @@ export default function TripScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Status Banner */}
-        <Card style={[styles.statusBanner, { backgroundColor: colors.primary }]}>
+        <Card style={StyleSheet.flatten([styles.statusBanner, { backgroundColor: colors.primary }]) as ViewStyle}>
           <Ionicons name="time" size={24} color={colors.secondary} />
           <View style={styles.statusInfo}>
             <Text style={[styles.statusTitle, { color: colors.secondary }]}>
@@ -224,7 +225,7 @@ export default function TripScreen() {
               Total Fare
             </Text>
             <Text style={[styles.totalValue, { color: colors.text }]}>
-              ${currentRide.fare.toFixed(2)}
+              K{currentRide.fare.toFixed(2)}
             </Text>
           </View>
         </Card>

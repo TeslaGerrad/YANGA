@@ -19,70 +19,51 @@ export default function RegisterScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    password: '',
-    confirmPassword: '',
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [phone, setPhone] = useState('');
+  const [error, setError] = useState('');
   
-  const { register, isLoading } = useAuthStore();
+  const { sendVerificationCode, isLoading } = useAuthStore();
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    
-    if (!formData.name) {
-      newErrors.name = 'Name is required';
+  const validatePhone = () => {
+    if (!phone) {
+      setError('Phone number is required');
+      return false;
     }
     
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
+    // Zambian phone number format: +260 followed by 9 digits
+    const phoneRegex = /^(\+260|0)?[97]\d{8}$/;
+    if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
+      setError('Invalid Zambian phone number');
+      return false;
     }
     
-    if (!formData.phone) {
-      newErrors.phone = 'Phone number is required';
-    } else if (!/^\+?[\d\s-()]+$/.test(formData.phone)) {
-      newErrors.phone = 'Phone number is invalid';
-    }
-    
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    }
-    
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setError('');
+    return true;
   };
 
-  const handleRegister = async () => {
-    if (!validateForm()) return;
+  const handleContinue = async () => {
+    if (!validatePhone()) return;
     
     try {
-      await register({
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        password: formData.password,
+      // Format phone number
+      let formattedPhone = phone.replace(/\s/g, '');
+      if (formattedPhone.startsWith('0')) {
+        formattedPhone = '+260' + formattedPhone.substring(1);
+      } else if (!formattedPhone.startsWith('+')) {
+        formattedPhone = '+260' + formattedPhone;
+      }
+      
+      const code = await sendVerificationCode(formattedPhone);
+      
+      // For demo purposes, show the code
+      alert(`Verification code sent: ${code}\n(In production, this would be sent via SMS)`);
+      
+      router.push({
+        pathname: '/verify-phone',
+        params: { phone: formattedPhone },
       });
-      router.replace('/(tabs)');
     } catch (error) {
-      setErrors({ email: 'Registration failed' });
-    }
-  };
-
-  const updateField = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+      setError('Failed to send verification code');
     }
   };
 
@@ -98,64 +79,33 @@ export default function RegisterScreen() {
         <View style={styles.header}>
           <Text style={[styles.title, { color: colors.text }]}>Create Account</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Sign up to get started
+            Enter your phone number to get started
           </Text>
         </View>
 
         <View style={styles.form}>
           <Input
-            label="Full Name"
-            placeholder="Enter your name"
-            value={formData.name}
-            onChangeText={(value) => updateField('name', value)}
-            error={errors.name}
-            icon="person-outline"
-          />
-
-          <Input
-            label="Email"
-            placeholder="Enter your email"
-            value={formData.email}
-            onChangeText={(value) => updateField('email', value)}
-            error={errors.email}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            icon="mail-outline"
-          />
-
-          <Input
             label="Phone Number"
-            placeholder="Enter your phone number"
-            value={formData.phone}
-            onChangeText={(value) => updateField('phone', value)}
-            error={errors.phone}
+            placeholder="+260 97X XXX XXX"
+            value={phone}
+            onChangeText={(text) => {
+              setPhone(text);
+              setError('');
+            }}
+            error={error}
             keyboardType="phone-pad"
             icon="call-outline"
           />
 
-          <Input
-            label="Password"
-            placeholder="Create a password"
-            value={formData.password}
-            onChangeText={(value) => updateField('password', value)}
-            error={errors.password}
-            secureTextEntry
-            icon="lock-closed-outline"
-          />
-
-          <Input
-            label="Confirm Password"
-            placeholder="Confirm your password"
-            value={formData.confirmPassword}
-            onChangeText={(value) => updateField('confirmPassword', value)}
-            error={errors.confirmPassword}
-            secureTextEntry
-            icon="lock-closed-outline"
-          />
+          <View style={[styles.infoBox, { backgroundColor: colors.card }]}>
+            <Text style={[styles.infoText, { color: colors.textSecondary }]}>
+              We'll send you a verification code via SMS to confirm your number
+            </Text>
+          </View>
 
           <Button
-            title="Sign Up"
-            onPress={handleRegister}
+            title="Continue"
+            onPress={handleContinue}
             loading={isLoading}
             style={styles.button}
           />
@@ -181,10 +131,11 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 24,
-    paddingTop: 48,
+    paddingTop: 60,
+    justifyContent: 'center',
   },
   header: {
-    marginBottom: 32,
+    marginBottom: 48,
   },
   title: {
     fontSize: 32,
@@ -197,9 +148,17 @@ const styles = StyleSheet.create({
   form: {
     marginBottom: 24,
   },
+  infoBox: {
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 24,
+  },
+  infoText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
   button: {
     width: '100%',
-    marginTop: 8,
   },
   footer: {
     flexDirection: 'row',

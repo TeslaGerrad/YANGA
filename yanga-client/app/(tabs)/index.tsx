@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useAuthStore } from '@/store/useAuthStore';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors } from '@/constants/colors';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useAuthStore } from '@/store/useAuthStore';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import React from 'react';
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 export default function HomeScreen() {
   const colorScheme = useColorScheme();

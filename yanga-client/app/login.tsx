@@ -19,19 +19,22 @@ export default function LoginScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   
-  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{ phone?: string; password?: string }>({});
   
   const { login, isLoading } = useAuthStore();
 
   const validateForm = () => {
-    const newErrors: { email?: string; password?: string } = {};
+    const newErrors: { phone?: string; password?: string } = {};
     
-    if (!email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Email is invalid';
+    if (!phone) {
+      newErrors.phone = 'Phone number is required';
+    } else {
+      const phoneRegex = /^(\+260|0)?[97]\d{8}$/;
+      if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
+        newErrors.phone = 'Invalid Zambian phone number';
+      }
     }
     
     if (!password) {
@@ -48,10 +51,18 @@ export default function LoginScreen() {
     if (!validateForm()) return;
     
     try {
-      await login(email, password);
+      // Format phone number
+      let formattedPhone = phone.replace(/\s/g, '');
+      if (formattedPhone.startsWith('0')) {
+        formattedPhone = '+260' + formattedPhone.substring(1);
+      } else if (!formattedPhone.startsWith('+')) {
+        formattedPhone = '+260' + formattedPhone;
+      }
+      
+      await login(formattedPhone, password);
       router.replace('/(tabs)');
     } catch (error) {
-      setErrors({ email: 'Invalid credentials' });
+      setErrors({ phone: 'Invalid credentials' });
     }
   };
 
@@ -73,27 +84,35 @@ export default function LoginScreen() {
 
         <View style={styles.form}>
           <Input
-            label="Email"
-            placeholder="Enter your email"
-            value={email}
-            onChangeText={setEmail}
-            error={errors.email}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            icon="mail-outline"
+            label="Phone Number"
+            placeholder="+260 97X XXX XXX"
+            value={phone}
+            onChangeText={(text) => {
+              setPhone(text);
+              setErrors({ ...errors, phone: undefined });
+            }}
+            error={errors.phone}
+            keyboardType="phone-pad"
+            icon="call-outline"
           />
 
           <Input
             label="Password"
             placeholder="Enter your password"
             value={password}
-            onChangeText={setPassword}
+            onChangeText={(text) => {
+              setPassword(text);
+              setErrors({ ...errors, password: undefined });
+            }}
             error={errors.password}
             secureTextEntry
             icon="lock-closed-outline"
           />
 
-          <TouchableOpacity style={styles.forgotPassword}>
+          <TouchableOpacity 
+            style={styles.forgotPassword}
+            onPress={() => router.push('/forgot-password')}
+          >
             <Text style={[styles.forgotPasswordText, { color: colors.textSecondary }]}>
               Forgot Password?
             </Text>

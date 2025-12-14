@@ -238,7 +238,7 @@ export default function RatingScreen() {
               Trip Fare
             </Text>
             <Text style={[styles.fareAmount, { color: colors.text }]}>
-              ${lastRide?.fare.toFixed(2) || '0.00'}
+              K{lastRide?.fare.toFixed(2) || '0.00'}
             </Text>
           </View>
         </Card>

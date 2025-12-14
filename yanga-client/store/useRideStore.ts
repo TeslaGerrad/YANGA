@@ -83,13 +83,140 @@ export const VEHICLE_TYPES: VehicleType[] = [
   },
 ];
 
+// Mock ride history data (Zambian locations - Lusaka)
+const MOCK_RIDE_HISTORY: Ride[] = [
+  {
+    id: '1',
+    pickup: {
+      latitude: -15.4167,
+      longitude: 28.2833,
+      address: 'Cairo Road, Lusaka City Centre, Lusaka',
+    },
+    destination: {
+      latitude: -15.3875,
+      longitude: 28.3228,
+      address: 'Manda Hill Shopping Mall, Great East Road, Lusaka',
+    },
+    vehicleType: VEHICLE_TYPES[0],
+    fare: 85.50,
+    distance: 5.2,
+    duration: '12 min',
+    status: 'completed',
+    driver: {
+      id: 'd1',
+      name: 'Chanda Mwale',
+      rating: 4.9,
+      vehicleType: 'Standard',
+      vehicleNumber: 'BAZ 4521',
+    },
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+  },
+  {
+    id: '2',
+    pickup: {
+      latitude: -15.4086,
+      longitude: 28.2809,
+      address: 'Levy Junction Mall, Lusaka',
+    },
+    destination: {
+      latitude: -15.3928,
+      longitude: 28.3147,
+      address: 'University of Zambia (UNZA), Great East Road, Lusaka',
+    },
+    vehicleType: VEHICLE_TYPES[1],
+    fare: 145.80,
+    distance: 8.5,
+    duration: '18 min',
+    status: 'completed',
+    driver: {
+      id: 'd2',
+      name: 'Mutale Banda',
+      rating: 4.8,
+      vehicleType: 'Premium',
+      vehicleNumber: 'ABB 7823',
+    },
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+  },
+  {
+    id: '3',
+    pickup: {
+      latitude: -15.4253,
+      longitude: 28.2831,
+      address: 'Arcades Shopping Centre, Great East Road, Lusaka',
+    },
+    destination: {
+      latitude: -15.3978,
+      longitude: 28.3453,
+      address: 'Crossroads Mall, Great East Road, Lusaka',
+    },
+    vehicleType: VEHICLE_TYPES[0],
+    fare: 68.40,
+    distance: 4.1,
+    duration: '10 min',
+    status: 'cancelled',
+    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
+  },
+  {
+    id: '4',
+    pickup: {
+      latitude: -15.4471,
+      longitude: 28.2664,
+      address: 'Kenneth Kaunda International Airport, Lusaka',
+    },
+    destination: {
+      latitude: -15.4167,
+      longitude: 28.2833,
+      address: 'InterContinental Hotel, Haile Selassie Avenue, Lusaka',
+    },
+    vehicleType: VEHICLE_TYPES[2],
+    fare: 210.50,
+    distance: 12.3,
+    duration: '25 min',
+    status: 'completed',
+    driver: {
+      id: 'd3',
+      name: 'Joseph Phiri',
+      rating: 4.95,
+      vehicleType: 'XL',
+      vehicleNumber: 'BAA 1234',
+    },
+    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
+  },
+  {
+    id: '5',
+    pickup: {
+      latitude: -15.4203,
+      longitude: 28.3102,
+      address: 'Soweto Market, Lusaka',
+    },
+    destination: {
+      latitude: -15.4389,
+      longitude: 28.2756,
+      address: 'East Park Mall, Great East Road, Lusaka',
+    },
+    vehicleType: VEHICLE_TYPES[1],
+    fare: 128.70,
+    distance: 7.2,
+    duration: '15 min',
+    status: 'completed',
+    driver: {
+      id: 'd4',
+      name: 'Grace Mulenga',
+      rating: 4.7,
+      vehicleType: 'Premium',
+      vehicleNumber: 'ABF 5678',
+    },
+    createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000), // 14 days ago
+  },
+];
+
 export const useRideStore = create<RideState>((set, get) => ({
   currentRide: null,
   pickup: null,
   destination: null,
   selectedVehicle: null,
   estimatedFare: null,
-  rideHistory: [],
+  rideHistory: MOCK_RIDE_HISTORY,
   
   setPickup: (location) => {
     set({ pickup: location });
