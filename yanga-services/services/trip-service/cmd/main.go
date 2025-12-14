@@ -51,7 +51,8 @@ func main() {
 
 	queries := db.New(dbPool)
 	tripRepo := repository.NewTripRepository(queries)
-	tripService := service.NewTripService(tripRepo, eventBus)
+	rideRequestRepo := repository.NewRideRequestRepository(queries)
+	tripService := service.NewTripService(tripRepo, rideRequestRepo, eventBus)
 	tripHandler := handler.NewTripHandler(tripService)
 
 	router := mux.NewRouter()

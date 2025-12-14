@@ -24,30 +24,3 @@ func SetupAuthRoutes(router *mux.Router, authHandler *handler.AuthHandler) {
 	// Swagger documentation
 	router.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-}	router.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)	// Swagger documentation	public.HandleFunc("/refresh-token", authHandler.RefreshToken).Methods("POST")	public.HandleFunc("/reset-password", authHandler.ResetPassword).Methods("POST")	public.HandleFunc("/forgot-password", authHandler.ForgotPassword).Methods("POST")	public.HandleFunc("/resend-otp", authHandler.ResendOTP).Methods("POST")	public.HandleFunc("/verify-phone", authHandler.VerifyPhone).Methods("POST")	public.HandleFunc("/login", authHandler.Login).Methods("POST")	public.HandleFunc("/register", authHandler.Register).Methods("POST")	public := api.PathPrefix("/auth").Subrouter()	// Public routes (no authentication required)	api := router.PathPrefix("/api/v1").Subrouter()	// API v1 routesfunc SetupAuthRoutes(router *mux.Router, authHandler *handler.AuthHandler) {// SetupAuthRoutes configures all authentication routes)	httpSwagger "github.com/swaggo/http-swagger"	"github.com/namycodes/yanga-services/services/auth-service/internal/handler"	"github.com/gorilla/mux"import (

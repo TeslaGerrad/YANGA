@@ -1,0 +1,294 @@
+basePath: /api/v1
+definitions:
+  domain.CancelTripRequest:
+    properties:
+      reason:
+        example: Changed my mind
+        type: string
+    required:
+    - reason
+    type: object
+  domain.CreateTripRequest:
+    properties:
+      dropoff_address:
+        example: Westlands
+        type: string
+      dropoff_latitude:
+        example: -1.292066
+        type: number
+      dropoff_longitude:
+        example: 36.821945
+        type: number
+      pickup_address:
+        example: Nairobi CBD
+        type: string
+      pickup_latitude:
+        example: -1.286389
+        type: number
+      pickup_longitude:
+        example: 36.817223
+        type: number
+    required:
+    - dropoff_address
+    - dropoff_latitude
+    - dropoff_longitude
+    - pickup_address
+    - pickup_latitude
+    - pickup_longitude
+    type: object
+  domain.DriverProfile:
+    properties:
+      created_at:
+        type: string
+      current_latitude:
+        type: number
+      current_longitude:
+        type: number
+      id:
+        type: string
+      is_approved:
+        type: boolean
+      is_online:
+        type: boolean
+      license_number:
+        type: string
+      rating:
+        type: number
+      total_trips:
+        type: integer
+      updated_at:
+        type: string
+      user_id:
+        type: string
+      vehicle_color:
+        type: string
+      vehicle_model:
+        type: string
+      vehicle_plate_number:
+        type: string
+      vehicle_type:
+        type: string
+    type: object
+  domain.DriverWithInfo:
+    properties:
+      distance:
+        type: number
+      driver_profile:
+        $ref: '#/definitions/domain.DriverProfile'
+      user:
+        $ref: '#/definitions/domain.User'
+    type: object
+  domain.ErrorResponse:
+    properties:
+      error:
+        example: Invalid request
+        type: string
+      message:
+        example: Detailed error message
+        type: string
+    type: object
+  domain.Trip:
+    properties:
+      actual_duration:
+        type: integer
+      actual_fare:
+        type: number
+      cancellation_reason:
+        type: string
+      cancelled_at:
+        type: string
+      completed_at:
+        type: string
+      created_at:
+        type: string
+      distance:
+        type: number
+      driver_id:
+        type: string
+      dropoff_address:
+        type: string
+      dropoff_latitude:
+        type: number
+      dropoff_longitude:
+        type: number
+      estimated_duration:
+        type: integer
+      estimated_fare:
+        type: number
+      id:
+        type: string
+      payment_method:
+        type: string
+      payment_status:
+        type: string
+      pickup_address:
+        type: string
+      pickup_latitude:
+        type: number
+      pickup_longitude:
+        type: number
+      started_at:
+        type: string
+      status:
+        description: pending, accepted, in_progress, completed, cancelled
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  domain.TripResponse:
+    properties:
+      available_drivers:
+        items:
+          $ref: '#/definitions/domain.DriverWithInfo'
+        type: array
+      trip:
+        $ref: '#/definitions/domain.Trip'
+    type: object
+  domain.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      full_name:
+        type: string
+      id:
+        type: string
+      is_active:
+        type: boolean
+      is_verified:
+        type: boolean
+      phone_number:
+        type: string
+      profile_image_url:
+        type: string
+      role:
+        description: user, driver, admin
+        type: string
+      updated_at:
+        type: string
+    type: object
+host: localhost:8082
+info:
+  contact: {}
+  description: Trip management and booking service
+  title: Trip Service API
+  version: "1.0"
+paths:
+  /trips:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Trip details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/domain.CreateTripRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.TripResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new trip
+      tags:
+      - trips
+  /trips/{id}:
+    get:
+      parameters:
+      - description: Trip ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.TripResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get trip by ID
+      tags:
+      - trips
+  /trips/{id}/cancel:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Trip ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Cancellation details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/domain.CancelTripRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.TripResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Cancel a trip
+      tags:
+      - trips
+  /trips/user:
+    get:
+      parameters:
+      - default: 10
+        description: Limit
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.TripResponse'
+            type: array
+      security:
+      - BearerAuth: []
+      summary: Get user's trips
+      tags:
+      - trips
+swagger: "2.0"

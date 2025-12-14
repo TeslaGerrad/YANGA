@@ -82,8 +82,8 @@ func (s *AuthService) Register(ctx context.Context, req *domain.RegisterRequest)
 			Email:       user.Email.String,
 			FullName:    user.FullName,
 			Role:        user.Role,
-			IsVerified:  user.IsVerified,
-			IsActive:    user.IsActive,
+			IsVerified:  user.IsVerified.Bool,
+			IsActive:    user.IsActive.Bool,
 		},
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
@@ -103,7 +103,7 @@ func (s *AuthService) Login(ctx context.Context, req *domain.LoginRequest) (*dom
 	}
 
 	// Check if user is active
-	if !user.IsActive {
+	if !user.IsActive.Bool {
 		return nil, errors.New("account is inactive")
 	}
 
@@ -126,8 +126,8 @@ func (s *AuthService) Login(ctx context.Context, req *domain.LoginRequest) (*dom
 			Email:       user.Email.String,
 			FullName:    user.FullName,
 			Role:        user.Role,
-			IsVerified:  user.IsVerified,
-			IsActive:    user.IsActive,
+			IsVerified:  user.IsVerified.Bool,
+			IsActive:    user.IsActive.Bool,
 		},
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
@@ -237,7 +237,7 @@ func (s *AuthService) RefreshToken(ctx context.Context, req *domain.RefreshToken
 		return nil, errors.New("user not found")
 	}
 
-	if !user.IsActive {
+	if !user.IsActive.Bool {
 		return nil, errors.New("account is inactive")
 	}
 

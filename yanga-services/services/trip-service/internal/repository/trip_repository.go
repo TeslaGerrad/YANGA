@@ -21,8 +21,8 @@ func (r *TripRepository) CreateTrip(ctx context.Context, params db.CreateTripPar
 	return r.queries.CreateTrip(ctx, params)
 }
 
-func (r *TripRepository) GetTripByID(ctx context.Context, id pgtype.UUID) (db.Trip, error) {
-	return r.queries.GetTripByID(ctx, id)
+func (r *TripRepository) GetTrip(ctx context.Context, id pgtype.UUID) (db.Trip, error) {
+	return r.queries.GetTrip(ctx, id)
 }
 
 func (r *TripRepository) GetUserTrips(ctx context.Context, params db.GetUserTripsParams) ([]db.Trip, error) {
@@ -33,26 +33,26 @@ func (r *TripRepository) GetDriverTrips(ctx context.Context, params db.GetDriver
 	return r.queries.GetDriverTrips(ctx, params)
 }
 
-func (r *TripRepository) UpdateTripStatus(ctx context.Context, params db.UpdateTripStatusParams) (db.Trip, error) {
+func (r *TripRepository) UpdateTripStatus(ctx context.Context, params db.UpdateTripStatusParams) error {
 	return r.queries.UpdateTripStatus(ctx, params)
 }
 
-func (r *TripRepository) AssignDriverToTrip(ctx context.Context, params db.AssignDriverToTripParams) (db.Trip, error) {
+func (r *TripRepository) AssignDriverToTrip(ctx context.Context, params db.AssignDriverToTripParams) error {
 	return r.queries.AssignDriverToTrip(ctx, params)
 }
 
-func (r *TripRepository) CompleteTrip(ctx context.Context, params db.CompleteTripParams) (db.Trip, error) {
+func (r *TripRepository) CompleteTrip(ctx context.Context, params db.CompleteTripParams) error {
 	return r.queries.CompleteTrip(ctx, params)
 }
 
-func (r *TripRepository) CancelTrip(ctx context.Context, params db.CancelTripParams) (db.Trip, error) {
+func (r *TripRepository) CancelTrip(ctx context.Context, params db.CancelTripParams) error {
 	return r.queries.CancelTrip(ctx, params)
 }
 
-func (r *TripRepository) GetActiveTripByUser(ctx context.Context, userID pgtype.UUID) (db.Trip, error) {
-	return r.queries.GetActiveTripByUser(ctx, userID)
+func (r *TripRepository) GetActiveTrip(ctx context.Context, userID pgtype.UUID) (db.Trip, error) {
+	return r.queries.GetActiveTrip(ctx, userID)
 }
 
-func (r *TripRepository) GetActiveTripByDriver(ctx context.Context, driverID pgtype.UUID) (db.Trip, error) {
-	return r.queries.GetActiveTripByDriver(ctx, driverID)
+func (r *TripRepository) GetDriverActiveTrip(ctx context.Context, driverID pgtype.UUID) (db.Trip, error) {
+	return r.queries.GetDriverActiveTrip(ctx, driverID)
 }
