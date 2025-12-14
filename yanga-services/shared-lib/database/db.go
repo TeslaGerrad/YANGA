@@ -8,8 +8,8 @@ import (
 	"github.com/namycodes/yanga-services/shared-lib/config"
 )
 
-func NewDBPool(cfg *config.DatabaseConfig) (*pgxpool.Pool, error) {
-	connString := cfg.GetDSN()
+func NewDBPool(cfg *config.Config) (*pgxpool.Pool, error) {
+	connString := cfg.DatabaseURL()
 
 	pool, err := pgxpool.New(context.Background(), connString)
 	if err != nil {

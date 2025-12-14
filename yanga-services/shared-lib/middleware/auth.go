@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/namycodes/yanga-services/shared-lib/config"
 	"github.com/namycodes/yanga-services/shared-lib/utils"
 )
 
@@ -13,37 +12,46 @@ type contextKey string
 
 const UserContextKey contextKey = "user"
 
-func AuthMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
+func AuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" {
-				utils.RespondWithError(w, http.StatusUnauthorized, "Authorization header required")
+				utils.ErrorResponse(w, http.StatusUnauthorized, "Authorization header required")
 				return
 			}
 
 			bearerToken := strings.Split(authHeader, " ")
 			if len(bearerToken) != 2 || bearerToken[0] != "Bearer" {
-				utils.RespondWithError(w, http.StatusUnauthorized, "Invalid authorization header format")
+				utils.ErrorResponse(w, http.StatusUnauthorized, "Invalid authorization header format")
 				return
 			}
 
-			claims, err := utils.ValidateJWT(bearerToken[1], cfg.JWT.Secret)
+			claims, err := utils.ValidateJWT(bearerToken[1], jwtSecret)
 			if err != nil {
-				utils.RespondWithError(w, http.StatusUnauthorized, "Invalid or expired token")
+				utils.ErrorResponse(w, http.StatusUnauthorized, "Invalid or expired token")
 				return
 			}
 
-			ctx := context.WithValue(r.Context(), UserContextKey, claims)
+			ctx := context.WithValue(r.Context(), "user_id", claims["user_id"])
+			ctx = context.WithValue(ctx, "role", claims["role"])
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
 
-func GetUserClaims(ctx context.Context) *utils.JWTClaims {
-	claims, ok := ctx.Value(UserContextKey).(*utils.JWTClaims)
+func GetUserID(ctx context.Context) string {
+	userID, ok := ctx.Value("user_id").(string)
 	if !ok {
-		return nil
+		return ""
 	}
-	return claims
+	return userID
+}
+
+func GetUserRole(ctx context.Context) string {
+	role, ok := ctx.Value("role").(string)
+	if !ok {
+		return ""
+	}
+	return role
 }

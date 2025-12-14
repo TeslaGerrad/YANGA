@@ -1,40 +1,35 @@
 package middleware
-package middleware
 
+import (
+	"log"
+	"net/http"
+	"time"
+)
 
+func LoggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
 
+		// Log request
+		log.Printf("Started %s %s", r.Method, r.URL.Path)
 
+		// Create a custom ResponseWriter to capture the status code
+		rw := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 
+		// Call the next handler
+		next.ServeHTTP(rw, r)
 
+		// Log response
+		log.Printf("Completed %s %s %d in %v", r.Method, r.URL.Path, rw.statusCode, time.Since(start))
+	})
+}
 
+type responseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-}	})		)			time.Since(start),			rw.statusCode,			r.RequestURI,			r.Method,			"%s %s %d %s",		log.Printf(		next.ServeHTTP(rw, r)		}			statusCode:     http.StatusOK,			ResponseWriter: w,		rw := &responseWriter{		start := time.Now()	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {func LoggingMiddleware(next http.Handler) http.Handler {}	rw.ResponseWriter.WriteHeader(code)	rw.statusCode = codefunc (rw *responseWriter) WriteHeader(code int) {}	statusCode int	http.ResponseWritertype responseWriter struct {)	"time"	"net/http"	"log"import (
+func (rw *responseWriter) WriteHeader(code int) {
+	rw.statusCode = code
+	rw.ResponseWriter.WriteHeader(code)
+}

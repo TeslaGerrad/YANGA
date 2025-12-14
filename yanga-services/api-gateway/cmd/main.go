@@ -92,7 +92,7 @@ func main() {
 	</style>
 </head>
 <body>
-	<h1>🚗 Yanga Rides API Gateway</h1>
+	<h1>Yanga Rides API Gateway</h1>
 	<p>Welcome to the Yanga Rides microservices API. Access documentation for each service below:</p>
 	
 	<div class="service">

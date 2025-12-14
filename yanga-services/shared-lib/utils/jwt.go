@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type JWTClaims struct {
@@ -79,7 +80,7 @@ func ValidateToken(tokenString string, secret string) (*Claims, error) {
 }
 
 func CheckPassword(password, hash string) bool {
-	err := ComparePassword(hash, password)
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
 }
 

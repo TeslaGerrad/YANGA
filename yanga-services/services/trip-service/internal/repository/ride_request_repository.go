@@ -1,8 +1,6 @@
 package repository
 
 import (
-	"context"
-
 	"github.com/namycodes/yanga-services/services/trip-service/internal/db"
 )
 
@@ -16,11 +14,4 @@ func NewRideRequestRepository(queries *db.Queries) *RideRequestRepository {
 	}
 }
 
-// Placeholder methods - implement when ride_requests table is needed
-func (r *RideRequestRepository) Create(ctx context.Context) error {
-	return nil
-}
-
-func (r *RideRequestRepository) GetPending(ctx context.Context) ([]interface{}, error) {
-	return nil, nil
-}
+// TODO: Implement ride request methods when ride_requests table is added to schema

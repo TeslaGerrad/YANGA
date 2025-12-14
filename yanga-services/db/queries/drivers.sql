@@ -58,21 +58,41 @@ ORDER BY dp.rating DESC
 LIMIT $1 OFFSET $2;
 
 -- name: GetNearbyDrivers :many
-SELECT * FROM (
-    SELECT dp.*, u.full_name, u.phone_number, u.profile_image_url,
-        (6371 * acos(
-            cos(radians($1)) * cos(radians(dp.current_latitude)) *
-            cos(radians(dp.current_longitude) - radians($2)) +
-            sin(radians($1)) * sin(radians(dp.current_latitude))
-        )) AS distance
-    FROM driver_profiles dp
-    JOIN users u ON dp.user_id = u.id
-    WHERE dp.is_online = TRUE 
-        AND dp.is_approved = TRUE
-        AND dp.current_latitude IS NOT NULL
-        AND dp.current_longitude IS NOT NULL
-) AS nearby
-WHERE distance < $3
+SELECT 
+    dp.id,
+    dp.user_id,
+    dp.license_number,
+    dp.vehicle_type,
+    dp.vehicle_model,
+    dp.vehicle_color,
+    dp.vehicle_plate_number,
+    dp.is_online,
+    dp.is_approved,
+    dp.rating,
+    dp.total_trips,
+    dp.current_latitude,
+    dp.current_longitude,
+    dp.created_at,
+    dp.updated_at,
+    u.full_name,
+    u.phone_number,
+    u.profile_image_url,
+    (6371 * acos(
+        cos(radians($1)) * cos(radians(dp.current_latitude)) *
+        cos(radians(dp.current_longitude) - radians($2)) +
+        sin(radians($1)) * sin(radians(dp.current_latitude))
+    )) AS distance
+FROM driver_profiles dp
+JOIN users u ON dp.user_id = u.id
+WHERE dp.is_online = TRUE 
+    AND dp.is_approved = TRUE
+    AND dp.current_latitude IS NOT NULL
+    AND dp.current_longitude IS NOT NULL
+    AND (6371 * acos(
+        cos(radians($1)) * cos(radians(dp.current_latitude)) *
+        cos(radians(dp.current_longitude) - radians($2)) +
+        sin(radians($1)) * sin(radians(dp.current_latitude))
+    )) < $3
 ORDER BY distance
 LIMIT $4;
 

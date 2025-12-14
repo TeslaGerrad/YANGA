@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -49,26 +48,25 @@ func (s *TripService) CreateTrip(ctx context.Context, userID uuid.UUID, req *dom
 		return nil, fmt.Errorf("invalid user ID: %w", err)
 	}
 
-	// Convert floats to pgtype.Numeric
-	var pickupLat, pickupLong, dropoffLat, dropoffLong, estimatedFareNum, distanceNum pgtype.Numeric
-	pickupLat.Scan(fmt.Sprintf("%f", req.PickupLatitude))
-	pickupLong.Scan(fmt.Sprintf("%f", req.PickupLongitude))
-	dropoffLat.Scan(fmt.Sprintf("%f", req.DropoffLatitude))
-	dropoffLong.Scan(fmt.Sprintf("%f", req.DropoffLongitude))
-	estimatedFareNum.Scan(fmt.Sprintf("%f", estimatedFare))
-	distanceNum.Scan(fmt.Sprintf("%f", distance))
+	// Convert to pgtype.Numeric
+	var pickupLat, pickupLng, dropoffLat, dropoffLng, estFare, dist pgtype.Numeric
+	pickupLat.Scan(req.PickupLatitude)
+	pickupLng.Scan(req.PickupLongitude)
+	dropoffLat.Scan(req.DropoffLatitude)
+	dropoffLng.Scan(req.DropoffLongitude)
+	estFare.Scan(estimatedFare)
+	dist.Scan(distance)
 
 	params := db.CreateTripParams{
 		UserID:           userPGUUID,
 		PickupLatitude:   pickupLat,
-		PickupLongitude:  pickupLong,
+		PickupLongitude:  pickupLng,
 		PickupAddress:    req.PickupAddress,
 		DropoffLatitude:  dropoffLat,
-		DropoffLongitude: dropoffLong,
+		DropoffLongitude: dropoffLng,
 		DropoffAddress:   req.DropoffAddress,
-		EstimatedFare:    estimatedFareNum,
-		Distance:         distanceNum,
-		EstimatedDuration: pgtype.Int4{Int32: int32(distance * 2), Valid: true}, // Simple estimation
+		EstimatedFare:    estFare,
+		Distance:         dist,
 	}
 
 	trip, err := s.tripRepo.CreateTrip(ctx, params)
@@ -134,7 +132,7 @@ func (s *TripService) CancelTrip(ctx context.Context, tripID uuid.UUID, reason s
 	}
 
 	reasonPtr := pgtype.Text{String: reason, Valid: true}
-	
+
 	err = s.tripRepo.CancelTrip(ctx, db.CancelTripParams{
 		ID:                 pgUUID,
 		CancellationReason: reasonPtr,
@@ -146,7 +144,7 @@ func (s *TripService) CancelTrip(ctx context.Context, tripID uuid.UUID, reason s
 	return nil
 }
 
-func (s *TripService) CompleteTrip(ctx context.Context, tripID uuid.UUID, actualFare float64, actualDuration int32) error {
+func (s *TripService) CompleteTrip(ctx context.Context, tripID uuid.UUID, actualFare float64, actualDuration int32, paymentStatus string) error {
 	var pgUUID pgtype.UUID
 	if err := pgUUID.Scan(tripID); err != nil {
 		return fmt.Errorf("invalid trip ID: %w", err)
@@ -161,17 +159,16 @@ func (s *TripService) CompleteTrip(ctx context.Context, tripID uuid.UUID, actual
 		return errors.New("only in-progress trips can be completed")
 	}
 
-	var fareNum pgtype.Numeric
-	fareNum.Scan(fmt.Sprintf("%f", actualFare))
-	
+	var fareNumeric pgtype.Numeric
+	fareNumeric.Scan(actualFare)
 	durationPtr := pgtype.Int4{Int32: actualDuration, Valid: true}
-	paymentStatus := pgtype.Text{String: "completed", Valid: true}
+	paymentStatusPtr := pgtype.Text{String: paymentStatus, Valid: true}
 
 	err = s.tripRepo.CompleteTrip(ctx, db.CompleteTripParams{
 		ID:             pgUUID,
-		ActualFare:     fareNum,
+		ActualFare:     fareNumeric,
 		ActualDuration: durationPtr,
-		PaymentStatus:  paymentStatus,
+		PaymentStatus:  paymentStatusPtr,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to complete trip: %w", err)

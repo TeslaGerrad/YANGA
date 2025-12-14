@@ -210,12 +210,13 @@ type RatingResponse struct {
 
 // Trip DTOs
 type CreateTripRequest struct {
-	PickupLatitude   float64 `json:"pickup_latitude" validate:"required" example:"-1.286389"`
-	PickupLongitude  float64 `json:"pickup_longitude" validate:"required" example:"36.817223"`
-	PickupAddress    string  `json:"pickup_address" validate:"required" example:"Nairobi CBD"`
-	DropoffLatitude  float64 `json:"dropoff_latitude" validate:"required" example:"-1.292066"`
-	DropoffLongitude float64 `json:"dropoff_longitude" validate:"required" example:"36.821945"`
-	DropoffAddress   string  `json:"dropoff_address" validate:"required" example:"Westlands"`
+	UserID           uuid.UUID `json:"-"`
+	PickupLatitude   float64   `json:"pickup_latitude" validate:"required" example:"-1.286389"`
+	PickupLongitude  float64   `json:"pickup_longitude" validate:"required" example:"36.817223"`
+	PickupAddress    string    `json:"pickup_address" validate:"required" example:"Nairobi CBD"`
+	DropoffLatitude  float64   `json:"dropoff_latitude" validate:"required" example:"-1.292066"`
+	DropoffLongitude float64   `json:"dropoff_longitude" validate:"required" example:"36.821945"`
+	DropoffAddress   string    `json:"dropoff_address" validate:"required" example:"Westlands"`
 }
 
 type TripResponse struct {
@@ -278,4 +279,30 @@ type ErrorResponse struct {
 type SuccessResponse struct {
 	Message string      `json:"message" example:"Operation successful"`
 	Data    interface{} `json:"data,omitempty"`
+}
+
+// Trip status constants
+const (
+	TripStatusPending    = "pending"
+	TripStatusRequested  = "requested"
+	TripStatusAccepted   = "accepted"
+	TripStatusInProgress = "in_progress"
+	TripStatusCompleted  = "completed"
+	TripStatusCancelled  = "cancelled"
+)
+
+// RideRequest represents a ride request
+type RideRequest struct {
+	ID               uuid.UUID `json:"id"`
+	TripID           uuid.UUID `json:"trip_id"`
+	UserID           uuid.UUID `json:"user_id"`
+	PickupLatitude   float64   `json:"pickup_latitude"`
+	PickupLongitude  float64   `json:"pickup_longitude"`
+	PickupAddress    string    `json:"pickup_address"`
+	DropoffLatitude  float64   `json:"dropoff_latitude"`
+	DropoffLongitude float64   `json:"dropoff_longitude"`
+	DropoffAddress   string    `json:"dropoff_address"`
+	EstimatedFare    *float64  `json:"estimated_fare,omitempty"`
+	Status           string    `json:"status"`
+	CreatedAt        time.Time `json:"created_at"`
 }

@@ -1,7 +1,8 @@
 .PHONY: help build run test clean docker-up docker-down migrate-up migrate-down sqlc proto swagger deps
 
 # Variables
-SERVICES := auth-service trip-service driver-service rating-service api-gateway
+SERVICES := auth-service trip-service driver-service rating-service
+GATEWAY := api-gateway
 DB_URL := postgresql://postgres:postgres@localhost:5432/yanga_db?sslmode=disable
 
 # Colors for output
@@ -166,8 +167,10 @@ swagger: ## Generate swagger documentation
 	@echo "${BLUE}Generating Swagger documentation...${NC}"
 	@for service in $(SERVICES); do \
 		echo "${GREEN}Generating swagger for $$service${NC}"; \
-		cd services/$$service && swag init -g cmd/main.go -o docs && cd ../..; \
+		cd services/$$service && swag init -g cmd/main.go -o docs --parseDependency --parseInternal && cd ../..; \
 	done
+	@echo "${GREEN}Generating swagger for $(GATEWAY)${NC}"
+	@cd $(GATEWAY) && swag init -g cmd/main.go -o docs --parseDependency --parseInternal
 	@echo "${GREEN}Swagger documentation generated${NC}"
 
 swagger-service: ## Generate swagger for specific service
