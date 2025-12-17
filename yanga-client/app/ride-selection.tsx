@@ -95,13 +95,15 @@ export default function RideSelection() {
   };
 
   const handleConfirmRide = () => {
-    // Navigate to booking screen with selected car details
+    // Navigate to finding driver screen with selected car details
+    const selectedCarOption = carOptions.find((car) => car.id === selectedCar);
     router.push({
-      pathname: "/booking",
+      pathname: "/finding-driver",
       params: {
-        carType: selectedCar,
-        pickup: pickupLocation,
-        destination: dropoffLocation,
+        from: pickupLocation,
+        to: dropoffLocation,
+        carType: selectedCarOption?.type || "Comfort",
+        price: selectedCarOption?.price || "k 30",
       },
     });
   };

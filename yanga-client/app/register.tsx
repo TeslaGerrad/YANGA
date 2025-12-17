@@ -121,7 +121,7 @@ export default function RegisterScreen() {
           <Image
             source={{ uri: YANGA_LOGO }}
             style={styles.logo}
-            resizeMode="contain"
+            resizeMode="cover"
           />
         </View>
 

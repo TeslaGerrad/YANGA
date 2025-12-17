@@ -89,7 +89,7 @@ export default function LoginScreen() {
           <Image
             source={{ uri: YANGA_LOGO }}
             style={styles.logo}
-            resizeMode="contain"
+            resizeMode="cover"
           />
         </View>
 

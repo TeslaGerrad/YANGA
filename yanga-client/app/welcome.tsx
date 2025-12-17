@@ -17,7 +17,7 @@ export default function WelcomeScreen() {
           <Image
             source={{ uri: YANGA_LOGO }}
             style={styles.logo}
-            resizeMode="contain"
+            resizeMode="cover"
           />
         </View>
 
@@ -31,7 +31,7 @@ export default function WelcomeScreen() {
         {/* Welcome Image */}
         <View style={styles.imageContainer}>
           <Image
-            source={{ uri: WELCOME_IMAGE }}
+            source={require("../assets/images/welcome.png")}
             style={styles.welcomeImage}
             resizeMode="contain"
           />

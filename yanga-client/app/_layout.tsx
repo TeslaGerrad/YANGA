@@ -45,6 +45,8 @@ export default function RootLayout() {
       segments[0] !== "search-destination" &&
       segments[0] !== "search-results" &&
       segments[0] !== "ride-selection" &&
+      segments[0] !== "finding-driver" &&
+      segments[0] !== "driver-details" &&
       segments[0] !== "trip" &&
       segments[0] !== "rating" &&
       segments[0] !== "modal"
