@@ -6,7 +6,7 @@ import { useRideStore } from "@/store/useRideStore";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { router } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -17,24 +17,31 @@ import {
   View,
 } from "react-native";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
+import MapViewDirections from "react-native-maps-directions";
 
 const { width, height } = Dimensions.get("window");
 const ASPECT_RATIO = width / height;
 const LATITUDE_DELTA = 0.0922;
 const LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RATIO;
 
+// Add your Google Maps API key here
+const GOOGLE_MAPS_API_KEY = "YOUR_GOOGLE_MAPS_API_KEY"; // Replace with your actual API key
+
 export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
 
   const { user } = useAuthStore();
-  const { currentRide, pickup } = useRideStore();
+  const { currentRide, pickup, destination } = useRideStore();
 
+  const mapRef = useRef<MapView>(null);
   const [location, setLocation] = useState<Location.LocationObject | null>(
     null
   );
   const [loading, setLoading] = useState(true);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [routeDistance, setRouteDistance] = useState<number | null>(null);
+  const [routeDuration, setRouteDuration] = useState<number | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -49,6 +56,23 @@ export default function HomeScreen() {
       setLoading(false);
     })();
   }, []);
+
+  // Auto-fit map to show pickup and destination when both are available
+  useEffect(() => {
+    if (pickup && destination && mapRef.current) {
+      const coordinates = [
+        { latitude: pickup.latitude, longitude: pickup.longitude },
+        { latitude: destination.latitude, longitude: destination.longitude },
+      ];
+
+      setTimeout(() => {
+        mapRef.current?.fitToCoordinates(coordinates, {
+          edgePadding: { top: 150, right: 50, bottom: 300, left: 50 },
+          animated: true,
+        });
+      }, 500);
+    }
+  }, [pickup, destination]);
 
   if (loading) {
     return (
@@ -107,6 +131,7 @@ export default function HomeScreen() {
       />
 
       <MapView
+        ref={mapRef}
         style={styles.map}
         provider={PROVIDER_DEFAULT}
         initialRegion={initialRegion}
@@ -114,6 +139,7 @@ export default function HomeScreen() {
         showsMyLocationButton={false}
         customMapStyle={colorScheme === "dark" ? darkMapStyle : []}
       >
+        {/* Pickup Marker */}
         {pickup && (
           <Marker
             coordinate={{
@@ -121,6 +147,7 @@ export default function HomeScreen() {
               longitude: pickup.longitude,
             }}
             title="Pickup Location"
+            description={pickup.address}
           >
             <View
               style={[styles.markerContainer, { backgroundColor: "#FF8200" }]}
@@ -129,6 +156,52 @@ export default function HomeScreen() {
             </View>
           </Marker>
         )}
+
+        {/* Destination Marker */}
+        {destination && (
+          <Marker
+            coordinate={{
+              latitude: destination.latitude,
+              longitude: destination.longitude,
+            }}
+            title="Destination"
+            description={destination.address}
+          >
+            <View
+              style={[styles.markerContainer, { backgroundColor: "#1E88E5" }]}
+            >
+              <Ionicons name="flag" size={24} color="#fff" />
+            </View>
+          </Marker>
+        )}
+
+        {/* Polyline/Directions - Shows navigation route */}
+        {pickup && destination && (
+          <MapViewDirections
+            origin={{
+              latitude: pickup.latitude,
+              longitude: pickup.longitude,
+            }}
+            destination={{
+              latitude: destination.latitude,
+              longitude: destination.longitude,
+            }}
+            apikey={GOOGLE_MAPS_API_KEY}
+            strokeWidth={4}
+            strokeColor="#FF8200"
+            optimizeWaypoints={true}
+            onReady={(result) => {
+              setRouteDistance(result.distance);
+              setRouteDuration(result.duration);
+            }}
+            onError={(errorMessage) => {
+              console.log("Directions Error:", errorMessage);
+            }}
+            lineDashPattern={[0]}
+            lineCap="round"
+            lineJoin="round"
+          />
+        )}
       </MapView>
 
       {/* Current Location Card */}
@@ -136,6 +209,31 @@ export default function HomeScreen() {
         <Ionicons name="menu" size={20} color="#111" style={styles.menuIcon} />
         <Text style={styles.currentLocationText}>Your Current Location</Text>
       </View>
+
+      {/* Route Information Card - Shows when navigation is active */}
+      {pickup && destination && routeDistance && routeDuration && (
+        <View style={styles.routeInfoCard}>
+          <View style={styles.routeInfoRow}>
+            <Ionicons name="navigate" size={24} color="#FF8200" />
+            <View style={styles.routeInfoTextContainer}>
+              <Text style={styles.routeInfoLabel}>Distance</Text>
+              <Text style={styles.routeInfoValue}>
+                {routeDistance.toFixed(1)} km
+              </Text>
+            </View>
+          </View>
+          <View style={styles.routeInfoDivider} />
+          <View style={styles.routeInfoRow}>
+            <Ionicons name="time" size={24} color="#FF8200" />
+            <View style={styles.routeInfoTextContainer}>
+              <Text style={styles.routeInfoLabel}>Duration</Text>
+              <Text style={styles.routeInfoValue}>
+                {Math.round(routeDuration)} min
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
 
       {/* Current Location Pin */}
       <View style={styles.currentLocationPin}>
@@ -324,5 +422,48 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
+  },
+  routeInfoCard: {
+    position: "absolute",
+    top: 130,
+    left: 20,
+    right: 20,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  routeInfoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  routeInfoTextContainer: {
+    marginLeft: 12,
+  },
+  routeInfoLabel: {
+    fontSize: 12,
+    color: "#5b5b5b",
+    fontFamily: "Lato-Regular",
+  },
+  routeInfoValue: {
+    fontSize: 16,
+    color: "#111",
+    fontWeight: "700",
+    fontFamily: "Lato-Bold",
+    marginTop: 2,
+  },
+  routeInfoDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: "#ebebeb",
+    marginHorizontal: 16,
   },
 });
