@@ -1,5 +1,8 @@
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { Colors } from "@/constants/colors";
 import { useDriver } from "@/context/driver-context";
+import { DrawerActions } from "@react-navigation/native";
+import { useNavigation } from "expo-router";
 import React from "react";
 import {
   Alert,
@@ -12,6 +15,7 @@ import {
 } from "react-native";
 
 export default function ProfileScreen() {
+  const navigation = useNavigation();
   const { driver, updateDriver, earningsSummary } = useDriver();
 
   const handleEditProfile = () => {
@@ -39,6 +43,11 @@ export default function ProfileScreen() {
 
       {/* Header */}
       <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+        >
+          <IconSymbol name="line.3.horizontal" size={28} color="#000" />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Profile</Text>
         <TouchableOpacity onPress={handleSettings}>
           <IconSymbol name="gearshape.fill" size={24} color="#000" />
@@ -93,10 +102,10 @@ export default function ProfileScreen() {
 
             <View style={styles.statBox}>
               <View style={[styles.statIconContainer, styles.statIconGreen]}>
-                <IconSymbol name="banknote" size={24} color="#4CAF50" />
+                <IconSymbol name="banknote" size={24} color={Colors.black} />
               </View>
               <Text style={styles.statValue}>
-                KES {earningsSummary.total.toFixed(0)}
+                ZMW {earningsSummary.total.toFixed(0)}
               </Text>
               <Text style={styles.statLabel}>Total Earned</Text>
             </View>
@@ -254,36 +263,38 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: Colors.offWhite,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: Colors.border,
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#000",
+    color: Colors.black,
   },
   profileCard: {
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     marginHorizontal: 20,
     marginTop: 20,
     padding: 24,
     borderRadius: 16,
     alignItems: "center",
-    shadowColor: "#000",
+    shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   avatarContainer: {
     position: "relative",
@@ -293,14 +304,14 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: "#2196F3",
+    backgroundColor: Colors.black,
     justifyContent: "center",
     alignItems: "center",
   },
   avatarText: {
     fontSize: 36,
     fontWeight: "bold",
-    color: "#fff",
+    color: Colors.white,
   },
   editAvatarButton: {
     position: "absolute",
@@ -309,41 +320,43 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#4CAF50",
+    backgroundColor: Colors.black,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 3,
-    borderColor: "#fff",
+    borderColor: Colors.white,
   },
   driverName: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#000",
+    color: Colors.black,
     marginBottom: 4,
   },
   driverEmail: {
     fontSize: 14,
-    color: "#666",
+    color: Colors.mediumGray,
     marginBottom: 16,
   },
   ratingContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFF3E0",
+    backgroundColor: Colors.offWhite,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     gap: 6,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   rating: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#000",
+    color: Colors.black,
   },
   ratingLabel: {
     fontSize: 14,
-    color: "#666",
+    color: Colors.mediumGray,
     marginLeft: 4,
   },
   editButton: {
@@ -354,12 +367,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#2196F3",
+    borderColor: Colors.black,
   },
   editButtonText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#2196F3",
+    color: Colors.black,
   },
   statsSection: {
     paddingHorizontal: 20,
@@ -372,7 +385,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#000",
+    color: Colors.black,
     marginBottom: 12,
   },
   statsGrid: {
@@ -382,54 +395,58 @@ const styles = StyleSheet.create({
   },
   statBox: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     padding: 16,
     borderRadius: 12,
     alignItems: "center",
-    shadowColor: "#000",
+    shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.06,
     shadowRadius: 4,
     elevation: 2,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   statIconContainer: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#E3F2FD",
+    backgroundColor: Colors.offWhite,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 8,
   },
   statIconGreen: {
-    backgroundColor: "#E8F5E9",
+    backgroundColor: Colors.offWhite,
   },
   statIconOrange: {
-    backgroundColor: "#FFF3E0",
+    backgroundColor: Colors.offWhite,
   },
   statIconPurple: {
-    backgroundColor: "#F3E5F5",
+    backgroundColor: Colors.offWhite,
   },
   statValue: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#000",
+    color: Colors.black,
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: "#666",
+    color: Colors.mediumGray,
     textAlign: "center",
   },
   infoCard: {
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     borderRadius: 12,
     padding: 16,
-    shadowColor: "#000",
+    shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.06,
     shadowRadius: 4,
     elevation: 2,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   infoRow: {
     flexDirection: "row",
@@ -441,7 +458,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: Colors.offWhite,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -450,32 +467,34 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 12,
-    color: "#999",
+    color: Colors.mediumGray,
     marginBottom: 2,
   },
   infoValue: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#000",
+    color: Colors.black,
   },
   infoDivider: {
     height: 1,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: Colors.border,
     marginVertical: 8,
   },
   actionButton: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     padding: 16,
     borderRadius: 12,
     marginBottom: 8,
-    shadowColor: "#000",
+    shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.06,
     shadowRadius: 2,
     elevation: 1,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   actionLeft: {
     flexDirection: "row",
@@ -485,25 +504,25 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 16,
     fontWeight: "500",
-    color: "#000",
+    color: Colors.black,
   },
   logoutButton: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     gap: 12,
-    backgroundColor: "#fff",
+    backgroundColor: Colors.white,
     marginHorizontal: 20,
     marginTop: 24,
     padding: 16,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#F44336",
+    borderWidth: 2,
+    borderColor: Colors.black,
   },
   logoutText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#F44336",
+    color: Colors.black,
   },
   footer: {
     alignItems: "center",
@@ -511,6 +530,6 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 12,
-    color: "#999",
+    color: Colors.mediumGray,
   },
 });
