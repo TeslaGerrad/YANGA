@@ -1,8 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
+import Constants from "expo-constants";
+import * as Location from "expo-location";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  Image,
+  ActivityIndicator,
+  Platform,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -13,44 +16,129 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-// Image assets from Figma (7-day CDN URLs)
-const images = {
-  path14:
-    "https://www.figma.com/api/mcp/asset/b5f62970-d437-4464-9afc-73c95bcbd8b0",
-  batteryShape1:
-    "https://www.figma.com/api/mcp/asset/89c6bf5a-3edb-4834-b94a-88282dd904f4",
-  batteryShape2:
-    "https://www.figma.com/api/mcp/asset/ce8f9372-1ade-4179-8d39-bfd161a5cdb6",
-  batteryShape3:
-    "https://www.figma.com/api/mcp/asset/0b62a13f-f6df-42ee-b3c1-b52f737763b7",
-  wifiShape:
-    "https://www.figma.com/api/mcp/asset/4863037e-9ff6-4bf6-8a1a-0962e6764357",
-  cellularShape:
-    "https://www.figma.com/api/mcp/asset/e8101456-e44c-4e74-9d65-3f11f248dd9a",
-  locationBg:
-    "https://www.figma.com/api/mcp/asset/941a9cf5-0a70-402c-bf74-43c1f0d1e02e",
-  locationIcon:
-    "https://www.figma.com/api/mcp/asset/60fe9b92-08ea-4be9-886d-e3eb2849bfcb",
-  dividerLine:
-    "https://www.figma.com/api/mcp/asset/35de987b-dd0b-4512-a21a-0ba6065823f9",
-  backIcon:
-    "https://www.figma.com/api/mcp/asset/3429815d-5532-401f-ad2f-e8daec484521",
-  currentLocationIcon:
-    "https://www.figma.com/api/mcp/asset/172ae5aa-20de-4e59-afbe-65ba1b6bd288",
-  circleGreen:
-    "https://www.figma.com/api/mcp/asset/6634abb5-5a51-4d37-b93f-13349db4499e",
-  circleGray:
-    "https://www.figma.com/api/mcp/asset/b11b910b-9035-4f84-b879-68bbe6f74b1e",
-  connectingLine:
-    "https://www.figma.com/api/mcp/asset/07c0b9a4-7835-4b38-87d0-16c0b5588608",
-  addLocationIcon:
-    "https://www.figma.com/api/mcp/asset/962364d4-591e-47bd-957d-b6bb3b0a5d12",
-};
+const GOOGLE_MAPS_API_KEY =
+  Constants.expoConfig?.extra?.googleMapsApiKey ||
+  process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
+  "";
+
+// Demo locations for testing (Lusaka, Zambia)
+const DEMO_LOCATIONS = [
+  {
+    place_id: "demo_1",
+    description: "Manda Hill Shopping Mall, Great East Road, Lusaka",
+    structured_formatting: {
+      main_text: "Manda Hill Shopping Mall",
+      secondary_text: "Great East Road, Lusaka",
+    },
+    latitude: -15.3875,
+    longitude: 28.3228,
+  },
+  {
+    place_id: "demo_2",
+    description: "Cairo Road, Lusaka City Centre",
+    structured_formatting: {
+      main_text: "Cairo Road",
+      secondary_text: "Lusaka City Centre",
+    },
+    latitude: -15.4167,
+    longitude: 28.2833,
+  },
+  {
+    place_id: "demo_3",
+    description: "Levy Junction Shopping Mall, Church Road, Lusaka",
+    structured_formatting: {
+      main_text: "Levy Junction",
+      secondary_text: "Church Road, Lusaka",
+    },
+    latitude: -15.4127,
+    longitude: 28.2883,
+  },
+  {
+    place_id: "demo_4",
+    description: "East Park Mall, Great East Road, Lusaka",
+    structured_formatting: {
+      main_text: "East Park Mall",
+      secondary_text: "Great East Road, Lusaka",
+    },
+    latitude: -15.4247,
+    longitude: 28.3133,
+  },
+  {
+    place_id: "demo_5",
+    description: "Kenneth Kaunda International Airport, Lusaka",
+    structured_formatting: {
+      main_text: "KK International Airport",
+      secondary_text: "Airport Road, Lusaka",
+    },
+    latitude: -15.3308,
+    longitude: 28.4526,
+  },
+  {
+    place_id: "demo_6",
+    description: "University of Zambia, Great East Road",
+    structured_formatting: {
+      main_text: "UNZA",
+      secondary_text: "Great East Road, Lusaka",
+    },
+    latitude: -15.3906,
+    longitude: 28.3234,
+  },
+  {
+    place_id: "demo_7",
+    description: "Arcades Shopping Centre, Great East Road, Lusaka",
+    structured_formatting: {
+      main_text: "Arcades Shopping Centre",
+      secondary_text: "Great East Road, Lusaka",
+    },
+    latitude: -15.4147,
+    longitude: 28.2983,
+  },
+  {
+    place_id: "demo_8",
+    description: "Levy Business Park, Levy Park, Lusaka",
+    structured_formatting: {
+      main_text: "Levy Business Park",
+      secondary_text: "Levy Park, Lusaka",
+    },
+    latitude: -15.4097,
+    longitude: 28.2893,
+  },
+  {
+    place_id: "demo_9",
+    description: "Mungwi Market, Chilimbulu Road, Lusaka",
+    structured_formatting: {
+      main_text: "Mungwi Market",
+      secondary_text: "Chilimbulu Road, Lusaka",
+    },
+    latitude: -15.3967,
+    longitude: 28.3033,
+  },
+  {
+    place_id: "demo_10",
+    description: "Shoprite Cosmopolitan Mall, Cairo Road, Lusaka",
+    structured_formatting: {
+      main_text: "Cosmopolitan Mall",
+      secondary_text: "Cairo Road, Lusaka",
+    },
+    latitude: -15.4187,
+    longitude: 28.2843,
+  },
+];
+
+interface PlacePrediction {
+  description: string;
+  place_id: string;
+  structured_formatting: {
+    main_text: string;
+    secondary_text: string;
+  };
+  distance_meters?: number;
+}
 
 interface LocationItemProps {
   name: string;
   address: string;
-  distance: string;
+  distance?: string;
   onPress: () => void;
 }
 
@@ -60,127 +148,230 @@ const LocationItem: React.FC<LocationItemProps> = ({
   distance,
   onPress,
 }) => (
-  <TouchableOpacity style={styles.locationItem} onPress={onPress}>
+  <TouchableOpacity
+    style={styles.locationItem}
+    onPress={onPress}
+    activeOpacity={0.7}
+  >
     <View style={styles.locationIconContainer}>
-      <Image source={{ uri: images.locationBg }} style={styles.locationBg} />
-      <Image
-        source={{ uri: images.locationIcon }}
-        style={styles.locationIcon}
-      />
+      <View style={styles.locationIconBg}>
+        <Ionicons name="location" size={16} color="#666" />
+      </View>
     </View>
     <View style={styles.locationInfo}>
-      <Text style={styles.locationName}>{name}</Text>
-      <Text style={styles.locationAddress}>{address}</Text>
+      <Text style={styles.locationName} numberOfLines={1}>
+        {name}
+      </Text>
+      <Text style={styles.locationAddress} numberOfLines={1}>
+        {address}
+      </Text>
     </View>
-    <Text style={styles.locationDistance}>{distance}</Text>
+    {distance && <Text style={styles.locationDistance}>{distance}</Text>}
   </TouchableOpacity>
 );
 
 export default function SearchResultsScreen() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [predictions, setPredictions] = useState<PlacePrediction[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [currentLocation, setCurrentLocation] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
 
-  // Dummy data - will be replaced with Places API
-  const allLocations = [
-    {
-      name: "Mungue Shopping Mall",
-      address: "Last street Aisha",
-      distance: "5.2 km",
-      lat: -15.4067,
-      lng: 28.2933,
-    },
-    {
-      name: "Mex Hospital",
-      address: "Ku hospita",
-      distance: "8.1 km",
-      lat: -15.4267,
-      lng: 28.2633,
-    },
-    {
-      name: "Mungule Market",
-      address: "10 miles",
-      distance: "8.5 km",
-      lat: -15.3967,
-      lng: 28.3033,
-    },
-    {
-      name: "FX Lion Restaurant",
-      address: "fx lion street",
-      distance: "9.3 km",
-      lat: -15.4467,
-      lng: 28.2733,
-    },
-    {
-      name: "The Leader Hotel",
-      address: "Smiles Avenue",
-      distance: "2.8 km",
-      lat: -15.4087,
-      lng: 28.2893,
-    },
-    {
-      name: "Six Miles Plaza",
-      address: "Chalala Road",
-      distance: "8.0 km",
-      lat: -15.4367,
-      lng: 28.2533,
-    },
-    {
-      name: "Arcades Shopping Centre",
-      address: "Great East Road",
-      distance: "6.5 km",
-      lat: -15.4147,
-      lng: 28.2983,
-    },
-    {
-      name: "Levy Mall",
-      address: "Church Road",
-      distance: "4.2 km",
-      lat: -15.4127,
-      lng: 28.2883,
-    },
-    {
-      name: "East Park Mall",
-      address: "Great East Road",
-      distance: "7.8 km",
-      lat: -15.4247,
-      lng: 28.3133,
-    },
-    {
-      name: "Kafue Road Park",
-      address: "Kafue Road",
-      distance: "3.5 km",
-      lat: -15.4197,
-      lng: 28.2763,
-    },
-  ];
+  // Get current location for better search results
+  useEffect(() => {
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === "granted") {
+        const location = await Location.getCurrentPositionAsync({});
+        setCurrentLocation({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+      }
+    })();
+  }, []);
 
-  const filteredLocations = searchQuery.trim()
-    ? allLocations.filter(
+  // Debounced search function
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery.trim().length > 2) {
+        searchPlaces(searchQuery);
+      } else if (searchQuery.trim().length === 0) {
+        // Show demo locations when search is empty
+        setPredictions(DEMO_LOCATIONS as any);
+      } else {
+        setPredictions([]);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const searchPlaces = async (query: string) => {
+    if (!GOOGLE_MAPS_API_KEY) {
+      console.warn("Google Maps API key not configured - using demo data");
+      // Use demo data when API key is not available
+      const filtered = DEMO_LOCATIONS.filter(
         (loc) =>
-          loc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          loc.address.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : allLocations;
+          loc.structured_formatting.main_text
+            .toLowerCase()
+            .includes(query.toLowerCase()) ||
+          loc.structured_formatting.secondary_text
+            .toLowerCase()
+            .includes(query.toLowerCase())
+      );
+      setPredictions(filtered as any);
+      setLoading(false);
+      return;
+    }
 
-  const handleLocationSelect = (location: (typeof allLocations)[0]) => {
-    console.log("Selected location:", location);
-    // Pass location data back via navigation params
-    router.push({
-      pathname: "/search-destination",
-      params: {
-        destinationName: location.name,
-        destinationLat: location.lat.toString(),
-        destinationLng: location.lng.toString(),
-      },
-    });
+    setLoading(true);
+    try {
+      const locationBias = currentLocation
+        ? `&location=${currentLocation.latitude},${currentLocation.longitude}&radius=50000`
+        : "&components=country:zm"; // Zambia country bias
+
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
+          query
+        )}&key=${GOOGLE_MAPS_API_KEY}${locationBias}`
+      );
+
+      const data = await response.json();
+
+      if (data.status === "OK") {
+        setPredictions(data.predictions || []);
+      } else {
+        console.warn(
+          "Places API error:",
+          data.status,
+          "- falling back to demo data"
+        );
+        // Fallback to demo data if API fails
+        const filtered = DEMO_LOCATIONS.filter(
+          (loc) =>
+            loc.structured_formatting.main_text
+              .toLowerCase()
+              .includes(query.toLowerCase()) ||
+            loc.structured_formatting.secondary_text
+              .toLowerCase()
+              .includes(query.toLowerCase())
+        );
+        setPredictions(filtered as any);
+      }
+    } catch (error) {
+      console.error("Error fetching places:", error);
+      // Fallback to demo data on error
+      const filtered = DEMO_LOCATIONS.filter(
+        (loc) =>
+          loc.structured_formatting.main_text
+            .toLowerCase()
+            .includes(query.toLowerCase()) ||
+          loc.structured_formatting.secondary_text
+            .toLowerCase()
+            .includes(query.toLowerCase())
+      );
+      setPredictions(filtered as any);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleCurrentLocation = () => {
-    console.log("Using current location");
-    router.back();
+  const getPlaceDetails = async (placeId: string) => {
+    if (!GOOGLE_MAPS_API_KEY) return;
+
+    try {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=geometry,name,formatted_address&key=${GOOGLE_MAPS_API_KEY}`
+      );
+
+      const data = await response.json();
+
+      if (data.status === "OK" && data.result) {
+        const { geometry, name, formatted_address } = data.result;
+        return {
+          latitude: geometry.location.lat,
+          longitude: geometry.location.lng,
+          name: name,
+          address: formatted_address,
+        };
+      }
+    } catch (error) {
+      console.error("Error fetching place details:", error);
+    }
+    return null;
   };
 
+  const handleLocationSelect = async (prediction: PlacePrediction) => {
+    // Check if it's a demo location (has latitude/longitude properties)
+    const isDemoLocation =
+      "latitude" in prediction && "longitude" in prediction;
+
+    if (isDemoLocation) {
+      // Use demo location directly
+      router.push({
+        pathname: "/search-destination",
+        params: {
+          destinationName: prediction.structured_formatting.main_text,
+          destinationLat: (prediction as any).latitude.toString(),
+          destinationLng: (prediction as any).longitude.toString(),
+          destinationAddress: prediction.description,
+        },
+      });
+    } else {
+      // Fetch from Places API
+      const placeDetails = await getPlaceDetails(prediction.place_id);
+
+      if (placeDetails) {
+        router.push({
+          pathname: "/search-destination",
+          params: {
+            destinationName: placeDetails.name,
+            destinationLat: placeDetails.latitude.toString(),
+            destinationLng: placeDetails.longitude.toString(),
+            destinationAddress: placeDetails.address,
+          },
+        });
+      }
+    }
+  };
+
+  const handleCurrentLocation = async () => {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status === "granted") {
+      const location = await Location.getCurrentPositionAsync({});
+
+      // Reverse geocode to get address
+      const address = await Location.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+
+      if (address && address[0]) {
+        router.push({
+          pathname: "/search-destination",
+          params: {
+            destinationName: "Current Location",
+            destinationLat: location.coords.latitude.toString(),
+            destinationLng: location.coords.longitude.toString(),
+            destinationAddress: `${address[0].street || ""}, ${
+              address[0].city || ""
+            }`,
+          },
+        });
+      }
+    }
+  };
+
+  const calculateDistance = (meters?: number): string => {
+    if (!meters) return "";
+    const km = meters / 1000;
+    return km < 1 ? `${Math.round(meters)} m` : `${km.toFixed(1)} km`;
+  };
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
       {/* Header */}
@@ -188,89 +379,90 @@ export default function SearchResultsScreen() {
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
+          activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={24} color="#111" />
+          <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <View style={styles.headerIcons}>
-          <Image
-            source={{ uri: images.cellularShape }}
-            style={styles.headerIcon}
-          />
-          <Image source={{ uri: images.wifiShape }} style={styles.headerIcon} />
-          <Image
-            source={{ uri: images.batteryShape1 }}
-            style={styles.headerIcon}
-          />
-        </View>
+        <Text style={styles.headerTitle}>Search destination</Text>
       </View>
 
       {/* Search Input */}
       <View style={styles.searchInputContainer}>
-        <Ionicons
-          name="search"
-          size={20}
-          color="#5b5b5b"
-          style={styles.searchIcon}
-        />
+        <View style={styles.searchIconWrapper}>
+          <Ionicons name="search" size={20} color="#fff" />
+        </View>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search location..."
-          placeholderTextColor="#5b5b5b"
+          placeholder="Where to?"
+          placeholderTextColor="#999"
           value={searchQuery}
           onChangeText={setSearchQuery}
           autoFocus
+          returnKeyType="search"
         />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery("")}>
-            <Ionicons name="close-circle" size={20} color="#5b5b5b" />
+        {loading && <ActivityIndicator size="small" color="#000" />}
+        {searchQuery.length > 0 && !loading && (
+          <TouchableOpacity
+            onPress={() => setSearchQuery("")}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="close-circle" size={20} color="#999" />
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Current Location Button - Always visible at top */}
+      <TouchableOpacity
+        style={styles.currentLocationTopButton}
+        onPress={handleCurrentLocation}
+        activeOpacity={0.7}
+      >
+        <View style={styles.currentLocationIconWrapper}>
+          <Ionicons name="navigate" size={18} color="#000" />
+        </View>
+        <Text style={styles.currentLocationTopText}>Use current location</Text>
+      </TouchableOpacity>
 
       {/* Location Results List */}
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
-        {filteredLocations.length > 0 ? (
-          filteredLocations.map((location, index) => (
-            <View key={index}>
+        {predictions.length > 0 ? (
+          predictions.map((prediction, index) => (
+            <View key={prediction.place_id}>
               <LocationItem
-                name={location.name}
-                address={location.address}
-                distance={location.distance}
-                onPress={() => handleLocationSelect(location)}
+                name={prediction.structured_formatting.main_text}
+                address={prediction.structured_formatting.secondary_text}
+                distance={calculateDistance(prediction.distance_meters)}
+                onPress={() => handleLocationSelect(prediction)}
               />
-              {index < filteredLocations.length - 1 && (
+              {index < predictions.length - 1 && (
                 <View style={styles.itemDivider} />
               )}
             </View>
           ))
-        ) : (
+        ) : searchQuery.trim().length > 0 && !loading ? (
           <View style={styles.emptyState}>
-            <Ionicons name="search-outline" size={48} color="#ccc" />
-            <Text style={styles.emptyStateText}>No locations found</Text>
+            <Ionicons name="search-outline" size={48} color="#ddd" />
+            <Text style={styles.emptyStateText}>No results found</Text>
             <Text style={styles.emptyStateSubtext}>
-              Try a different search term
+              Try searching for a different location
             </Text>
           </View>
-        )}
+        ) : !searchQuery.trim() ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="location-outline" size={48} color="#ddd" />
+            <Text style={styles.emptyStateText}>
+              Where would you like to go?
+            </Text>
+            <Text style={styles.emptyStateSubtext}>
+              Search for a place or use your current location
+            </Text>
+          </View>
+        ) : null}
       </ScrollView>
-
-      {/* Current Location Button */}
-      <View style={styles.bottomContainer}>
-        <View style={styles.bottomIndicator} />
-        <TouchableOpacity
-          style={styles.currentLocationButton}
-          onPress={handleCurrentLocation}
-        >
-          <Image
-            source={{ uri: images.currentLocationIcon }}
-            style={styles.currentLocationBtnIcon}
-          />
-          <Text style={styles.currentLocationBtnText}>Current Location</Text>
-        </TouchableOpacity>
-      </View>
     </SafeAreaView>
   );
 }
@@ -283,156 +475,90 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 12,
-    height: 44,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
   },
   backButton: {
-    width: 24,
-    height: 24,
+    width: 40,
+    height: 40,
     justifyContent: "center",
     alignItems: "center",
+    marginRight: 8,
   },
-  headerTime: {
-    fontFamily: "Lato-Regular",
-    fontSize: 12,
-    color: "#111",
-    position: "absolute",
-    left: 20,
-  },
-  headerIcons: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  headerIcon: {
-    width: 16,
-    height: 12,
-    resizeMode: "contain",
-  },
-  searchBarContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#000",
   },
   searchInputContainer: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#f5f5f5",
-    marginHorizontal: 20,
-    marginBottom: 16,
-    marginTop: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    marginHorizontal: 16,
+    marginVertical: 16,
+    paddingHorizontal: 12,
+    paddingVertical: Platform.OS === "ios" ? 12 : 8,
     borderRadius: 12,
-    gap: 8,
+    gap: 12,
   },
-  searchIcon: {
-    marginRight: 4,
+  searchIconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#000",
+    justifyContent: "center",
+    alignItems: "center",
   },
   searchInput: {
     flex: 1,
-    fontFamily: "Lato-Regular",
     fontSize: 16,
-    color: "#111",
+    color: "#000",
     padding: 0,
   },
+  currentLocationTopButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    backgroundColor: "#f5f5f5",
+    borderRadius: 12,
+  },
+  currentLocationIconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  currentLocationTopText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#000",
+  },
   emptyState: {
-    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 60,
+    paddingVertical: 80,
+    paddingHorizontal: 32,
   },
   emptyStateText: {
-    fontFamily: "Lato-Bold",
     fontSize: 18,
-    color: "#5b5b5b",
+    fontWeight: "600",
+    color: "#666",
     marginTop: 16,
+    textAlign: "center",
   },
   emptyStateSubtext: {
-    fontFamily: "Lato-Regular",
     fontSize: 14,
     color: "#999",
     marginTop: 8,
-  },
-  addLocationCard: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 8,
-    flexDirection: "row",
-    minHeight: 155,
-  },
-  locationIndicators: {
-    width: 30,
-    alignItems: "center",
-    paddingTop: 24,
-  },
-  circle: {
-    width: 10,
-    height: 10,
-    resizeMode: "contain",
-  },
-  connectingLineContainer: {
-    height: 60,
-    justifyContent: "center",
-    alignItems: "center",
-    marginVertical: 4,
-  },
-  connectingLine: {
-    width: 2,
-    height: 60,
-    resizeMode: "stretch",
-  },
-  locationTexts: {
-    flex: 1,
-    paddingLeft: 14,
-    paddingTop: 19,
-  },
-  fromText: {
-    fontFamily: "Lato-Regular",
-    fontSize: 16,
-    color: "#111",
-    textTransform: "capitalize",
-    marginBottom: 10,
-  },
-  currentLocationText: {
-    fontFamily: "Lato-Regular",
-    fontSize: 14,
-    color: "#36d000",
-    lineHeight: 20,
-    marginBottom: 16,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: "#5b5b5b",
-    marginBottom: 16,
-  },
-  whereToText: {
-    fontFamily: "Lato-Regular",
-    fontSize: 16,
-    color: "#111",
-    textTransform: "capitalize",
-    marginBottom: 10,
-  },
-  destinationText: {
-    fontFamily: "Lato-Regular",
-    fontSize: 14,
-    color: "#757575",
-  },
-  addLocationBtn: {
-    width: 24,
-    height: 24,
-    marginTop: 60,
-  },
-  addLocationIcon: {
-    width: 24,
-    height: 24,
-    resizeMode: "contain",
+    textAlign: "center",
   },
   scrollView: {
     flex: 1,
@@ -440,87 +566,42 @@ const styles = StyleSheet.create({
   locationItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 28,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
   locationIconContainer: {
-    width: 30,
-    height: 30,
-    position: "relative",
+    marginRight: 12,
+  },
+  locationIconBg: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#f5f5f5",
     justifyContent: "center",
     alignItems: "center",
-  },
-  locationBg: {
-    width: 30,
-    height: 30,
-    position: "absolute",
-    resizeMode: "contain",
-  },
-  locationIcon: {
-    width: 12,
-    height: 12,
-    resizeMode: "contain",
   },
   locationInfo: {
     flex: 1,
-    marginLeft: 15,
+    marginRight: 12,
   },
   locationName: {
-    fontFamily: "Lato-Regular",
-    fontSize: 14,
-    color: "#111",
-    lineHeight: 20,
-    marginBottom: 2,
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#000",
+    marginBottom: 4,
   },
   locationAddress: {
-    fontFamily: "Lato-Regular",
-    fontSize: 12,
-    color: "#999",
+    fontSize: 14,
+    color: "#666",
   },
   locationDistance: {
-    fontFamily: "Lato-Medium",
-    fontSize: 10,
-    color: "#111",
-    textAlign: "right",
+    fontSize: 12,
+    color: "#999",
+    fontWeight: "500",
   },
   itemDivider: {
     height: 1,
-    backgroundColor: "#ebebeb",
-    marginHorizontal: 20,
-  },
-  bottomContainer: {
-    paddingHorizontal: 53,
-    paddingVertical: 20,
-    alignItems: "center",
-  },
-  bottomIndicator: {
-    width: 95.67,
-    height: 6.31,
-    backgroundColor: "#e7e7e7",
-    borderRadius: 50,
-    marginBottom: 20,
-  },
-  currentLocationButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#5b5b5b",
-    borderRadius: 50,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    width: 270,
-    height: 50,
-  },
-  currentLocationBtnIcon: {
-    width: 20,
-    height: 20,
-    marginRight: 8,
-    resizeMode: "contain",
-  },
-  currentLocationBtnText: {
-    fontFamily: "Lato-Bold",
-    fontSize: 20,
-    color: "#5b5b5b",
+    backgroundColor: "#f0f0f0",
+    marginLeft: 64,
   },
 });

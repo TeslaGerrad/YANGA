@@ -1,5 +1,6 @@
 import ScheduleRideModal from "@/components/ScheduleRideModal";
 import { Ionicons } from "@expo/vector-icons";
+import Constants from "expo-constants";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -11,20 +12,31 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import MapView, { Marker, Polyline, PROVIDER_DEFAULT } from "react-native-maps";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
+import MapViewDirections from "react-native-maps-directions";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+const GOOGLE_MAPS_API_KEY =
+  Constants.expoConfig?.extra?.googleMapsApiKey ||
+  process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
+  "";
 
 export default function SearchDestinationScreen() {
   const params = useLocalSearchParams();
+  const mapRef = React.useRef<MapView>(null);
   const [fromLocation, setFromLocation] = useState("Current Location");
   const [toLocation, setToLocation] = useState("");
-  const [showAddStops, setShowAddStops] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [scheduleTime, setScheduleTime] = useState("Now");
   const [destinationCoords, setDestinationCoords] = useState<{
     latitude: number;
     longitude: number;
   } | null>(null);
+  const [pickupCoords] = useState({
+    latitude: -15.4167,
+    longitude: 28.2833,
+  });
+  const [routeReady, setRouteReady] = useState(false);
 
   // Update destination when returning from search results
   useEffect(() => {
@@ -39,9 +51,22 @@ export default function SearchDestinationScreen() {
     }
   }, [params.destinationName, params.destinationLat, params.destinationLng]);
 
+  // Auto-fit map to show full route when both points are available
+  useEffect(() => {
+    if (destinationCoords && mapRef.current && routeReady) {
+      const coordinates = [pickupCoords, destinationCoords];
+
+      setTimeout(() => {
+        mapRef.current?.fitToCoordinates(coordinates, {
+          edgePadding: { top: 100, right: 50, bottom: 400, left: 50 },
+          animated: true,
+        });
+      }, 300);
+    }
+  }, [destinationCoords, routeReady]);
+
   const handleConfirmDestination = () => {
     if (toLocation.trim()) {
-      // Navigate to ride selection screen with location details
       router.push({
         pathname: "/ride-selection",
         params: {
@@ -54,17 +79,13 @@ export default function SearchDestinationScreen() {
     }
   };
 
-  const handleUseCurrentLocation = () => {
-    setFromLocation("Ibex hill");
-  };
-
   const handleScheduleConfirm = (date: string, time: string) => {
     setScheduleTime(time);
     setShowScheduleModal(false);
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["bottom"]}>
       <StatusBar
         barStyle="dark-content"
         backgroundColor="transparent"
@@ -73,23 +94,28 @@ export default function SearchDestinationScreen() {
 
       {/* Map Background */}
       <MapView
-        provider={PROVIDER_DEFAULT}
+        ref={mapRef}
+        provider={PROVIDER_GOOGLE}
         style={styles.map}
         initialRegion={{
-          latitude: -15.4167,
-          longitude: 28.2833,
+          latitude: pickupCoords.latitude,
+          longitude: pickupCoords.longitude,
           latitudeDelta: 0.0922,
           longitudeDelta: 0.0421,
         }}
+        showsUserLocation
+        showsMyLocationButton={false}
       >
-        {/* Current Location Marker */}
+        {/* Pickup Marker */}
         <Marker
-          coordinate={{
-            latitude: -15.4167,
-            longitude: 28.2833,
-          }}
-          title="Current Location"
-        />
+          coordinate={pickupCoords}
+          title="Pickup Location"
+          anchor={{ x: 0.5, y: 0.5 }}
+        >
+          <View style={styles.pickupMarker}>
+            <View style={styles.markerDot} />
+          </View>
+        </Marker>
 
         {/* Destination Marker and Route */}
         {destinationCoords && (
@@ -97,16 +123,58 @@ export default function SearchDestinationScreen() {
             <Marker
               coordinate={destinationCoords}
               title={toLocation}
-              pinColor="#FF8200"
-            />
-            <Polyline
-              coordinates={[
-                { latitude: -15.4167, longitude: 28.2833 },
-                destinationCoords,
-              ]}
-              strokeColor="#FF8200"
-              strokeWidth={3}
-            />
+              anchor={{ x: 0.5, y: 1 }}
+            >
+              <View style={styles.destinationMarker}>
+                <View style={styles.markerPin}>
+                  <Ionicons name="location-sharp" size={20} color="#000" />
+                </View>
+              </View>
+            </Marker>
+
+            {/* Directions - Google Maps style with outline */}
+            {GOOGLE_MAPS_API_KEY && (
+              <>
+                {/* Outer stroke (outline) */}
+                <MapViewDirections
+                  origin={pickupCoords}
+                  destination={destinationCoords}
+                  apikey={GOOGLE_MAPS_API_KEY}
+                  strokeWidth={8}
+                  strokeColor="rgba(0, 0, 0, 0.3)"
+                  mode="DRIVING"
+                  precision="high"
+                  timePrecision="now"
+                  resetOnChange={false}
+                />
+                {/* Main stroke */}
+                <MapViewDirections
+                  origin={pickupCoords}
+                  destination={destinationCoords}
+                  apikey={GOOGLE_MAPS_API_KEY}
+                  strokeWidth={5}
+                  strokeColor="#000"
+                  mode="DRIVING"
+                  precision="high"
+                  timePrecision="now"
+                  resetOnChange={false}
+                  optimizeWaypoints={true}
+                  onReady={(result) => {
+                    console.log(
+                      `Route distance: ${result.distance.toFixed(2)} km`
+                    );
+                    console.log(
+                      `Route duration: ${result.duration.toFixed(0)} min`
+                    );
+                    setRouteReady(true);
+                  }}
+                  onError={(errorMessage) => {
+                    console.error("Directions Error:", errorMessage);
+                    setRouteReady(false);
+                  }}
+                />
+              </>
+            )}
           </>
         )}
       </MapView>
@@ -116,103 +184,79 @@ export default function SearchDestinationScreen() {
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => router.back()}
+          activeOpacity={0.7}
         >
-          <Ionicons name="chevron-back" size={24} color="#111" />
+          <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTime}>9:41</Text>
       </View>
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
       >
-        {/* Add Location Card */}
-        <View style={styles.addLocationCard}>
-          <View style={styles.locationIndicators}>
-            <View style={styles.circleGreen} />
-            <View style={styles.connectingLine} />
-            <View style={styles.circleRed} />
+        {/* Location Card */}
+        <View style={styles.locationCard}>
+          <View style={styles.locationRow}>
+            <View style={styles.dotContainer}>
+              <View style={styles.pickupDot} />
+            </View>
+            <View style={styles.locationTextContainer}>
+              <Text style={styles.locationLabel}>Pickup</Text>
+              <Text style={styles.locationText}>{fromLocation}</Text>
+            </View>
           </View>
 
-          <View style={styles.inputContainer}>
-            {/* From Input */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>From</Text>
-              <View style={styles.locationRow}>
-                <Text style={styles.locationValue}>{fromLocation}</Text>
-                <TouchableOpacity
-                  style={styles.locationIconButton}
-                  onPress={handleUseCurrentLocation}
-                >
-                  <View style={styles.locationIconCircle}>
-                    <Ionicons name="locate" size={16} color="#36d000" />
-                  </View>
-                </TouchableOpacity>
-              </View>
-            </View>
+          <View style={styles.connectingLine} />
 
-            <View style={styles.divider} />
-
-            {/* To Input */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Where To</Text>
-              <View style={styles.locationRow}>
-                <TouchableOpacity
-                  style={styles.inputTouchable}
-                  onPress={() => router.push("/search-results")}
-                  activeOpacity={0.7}
-                >
-                  <Text
-                    style={
-                      toLocation ? styles.locationValue : styles.placeholderText
-                    }
-                  >
-                    {toLocation || "Enter destination"}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.nowButton}
-                  onPress={() => setShowScheduleModal(true)}
-                >
-                  <Ionicons name="time-outline" size={16} color="#fff" />
-                  <Text style={styles.nowButtonText}>{scheduleTime}</Text>
-                  <Ionicons name="chevron-down" size={14} color="#fff" />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Add Stops Option */}
-            <TouchableOpacity
-              style={styles.addStopsButton}
-              onPress={() => setShowAddStops(!showAddStops)}
-            >
-              <Text style={styles.addStopsText}>Add stops?</Text>
-              <Ionicons
-                name={showAddStops ? "chevron-up" : "chevron-down"}
-                size={16}
-                color="#757575"
-              />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Bottom Sheet */}
-        <View style={styles.bottomSheet}>
-          <View style={styles.bottomIndicator} />
           <TouchableOpacity
-            style={styles.searchButton}
-            onPress={handleConfirmDestination}
-            disabled={!toLocation.trim()}
+            style={styles.locationRow}
+            onPress={() => router.push("/search-results")}
+            activeOpacity={0.7}
           >
-            <Text style={styles.searchButtonText}>Confirm Destination</Text>
-            <Ionicons
-              name="arrow-forward"
-              size={20}
-              color="#fff"
-              style={styles.arrowIcon}
-            />
+            <View style={styles.dotContainer}>
+              <View style={styles.destinationDot} />
+            </View>
+            <View style={styles.locationTextContainer}>
+              <Text style={styles.locationLabel}>Destination</Text>
+              <Text
+                style={
+                  toLocation ? styles.locationText : styles.placeholderText
+                }
+              >
+                {toLocation || "Where to?"}
+              </Text>
+            </View>
+            {!toLocation && (
+              <Ionicons name="chevron-forward" size={20} color="#999" />
+            )}
+          </TouchableOpacity>
+
+          {/* Schedule Button */}
+          <TouchableOpacity
+            style={styles.scheduleRow}
+            onPress={() => setShowScheduleModal(true)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="time-outline" size={20} color="#000" />
+            <Text style={styles.scheduleText}>{scheduleTime}</Text>
+            <Ionicons name="chevron-down" size={16} color="#000" />
           </TouchableOpacity>
         </View>
+
+        {/* Confirm Button */}
+        <TouchableOpacity
+          style={[
+            styles.confirmButton,
+            !toLocation.trim() && styles.confirmButtonDisabled,
+          ]}
+          onPress={handleConfirmDestination}
+          disabled={!toLocation.trim()}
+          activeOpacity={0.9}
+        >
+          <Text style={styles.confirmButtonText}>
+            {toLocation.trim() ? "Continue" : "Choose destination"}
+          </Text>
+        </TouchableOpacity>
       </KeyboardAvoidingView>
 
       <ScheduleRideModal
@@ -232,9 +276,14 @@ const styles = StyleSheet.create({
   map: {
     ...StyleSheet.absoluteFillObject,
   },
+  header: {
+    position: "absolute",
+    top: Platform.OS === "ios" ? 50 : 30,
+    left: 16,
+    right: 16,
+    zIndex: 10,
+  },
   backButton: {
-    marginTop: 10,
-    marginLeft: 3,
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -242,226 +291,148 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === "ios" ? 60 : 40,
-    paddingBottom: 12,
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-  },
-  menuButton: {
-    width: 40,
-    height: 40,
+
+  // Markers
+  pickupMarker: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#fff",
     justifyContent: "center",
-    alignItems: "flex-start",
+    alignItems: "center",
+    borderWidth: 4,
+    borderColor: "#000",
   },
-  headerTime: {
-    fontFamily: "Lato-Regular",
-    fontSize: 12,
-    color: "#111",
-    position: "absolute",
-    left: 20,
-    top: Platform.OS === "ios" ? 60 : 40,
+  markerDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#000",
   },
+  destinationMarker: {
+    alignItems: "center",
+  },
+  markerPin: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+
   keyboardView: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
   },
-  addLocationCard: {
+
+  // Location Card
+  locationCard: {
     backgroundColor: "#fff",
-    borderRadius: 20,
-    marginHorizontal: 20,
-    marginBottom: 16,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 8,
-    flexDirection: "row",
-    minHeight: 216,
-  },
-  locationIndicators: {
-    width: 30,
-    alignItems: "center",
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    paddingHorizontal: 20,
     paddingTop: 24,
-    marginRight: 14,
-  },
-  circleGreen: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#36d000",
-  },
-  circleRed: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#ff0000",
-  },
-  connectingLine: {
-    width: 2,
-    height: 60,
-    backgroundColor: "#5b5b5b",
-    marginVertical: 4,
-  },
-  inputContainer: {
-    flex: 1,
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontFamily: "Lato-Regular",
-    fontSize: 16,
-    color: "#111",
-    textTransform: "capitalize",
-    marginBottom: 8,
+    paddingBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 10,
   },
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    paddingVertical: 12,
   },
-  locationValue: {
-    fontFamily: "Lato-Regular",
-    fontSize: 14,
-    color: "#111",
-    lineHeight: 20,
+  dotContainer: {
+    width: 36,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  pickupDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "#000",
+  },
+  destinationDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 2,
+    backgroundColor: "#000",
+  },
+  connectingLine: {
+    width: 2,
+    height: 32,
+    backgroundColor: "#e0e0e0",
+    marginLeft: 17,
+    marginVertical: -4,
+  },
+  locationTextContainer: {
     flex: 1,
   },
-  locationIconButton: {
-    padding: 4,
-  },
-  locationIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#f0f0f0",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  addIconButton: {
-    padding: 4,
-  },
-  addIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#fff",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#FF8200",
-  },
-  nowButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FF8200",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 4,
-  },
-  nowButtonText: {
-    fontFamily: "Lato-Regular",
+  locationLabel: {
     fontSize: 12,
-    color: "#fff",
-    fontWeight: "500",
+    color: "#666",
+    marginBottom: 4,
   },
-  input: {
-    fontFamily: "Lato-Regular",
-    fontSize: 14,
-    color: "#111",
-    lineHeight: 20,
-    paddingVertical: 4,
-  },
-  inputTouchable: {
-    flex: 1,
-    paddingVertical: 4,
-    justifyContent: "center",
+  locationText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#000",
   },
   placeholderText: {
-    fontFamily: "Lato-Regular",
-    fontSize: 14,
-    color: "#757575",
-    lineHeight: 20,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: "#5b5b5b",
-    marginBottom: 16,
-  },
-  addStopsButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 8,
-  },
-  addStopsText: {
-    fontFamily: "Lato-Regular",
-    fontSize: 14,
-    color: "#757575",
-    marginRight: 4,
+    fontSize: 16,
+    color: "#999",
   },
 
-  bottomSheet: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingHorizontal: 31,
-    paddingVertical: 20,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 10,
-  },
-  bottomIndicator: {
-    width: 95.67,
-    height: 6.31,
-    backgroundColor: "#e7e7e7",
-    borderRadius: 50,
-    marginBottom: 20,
-  },
-  searchButton: {
-    backgroundColor: "#FF8200",
-    borderRadius: 60,
-    paddingVertical: 16,
-    paddingHorizontal: 48,
-    width: 312,
-    height: 63,
+  // Schedule Row
+  scheduleRow: {
     flexDirection: "row",
-    justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#FF8200",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 6,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#f0f0f0",
+    marginTop: 8,
     gap: 8,
   },
-  searchButtonText: {
-    fontFamily: "Lato-Bold",
-    fontSize: 18,
-    color: "#fff",
+  scheduleText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#000",
   },
-  arrowIcon: {
-    marginLeft: 4,
+
+  // Confirm Button
+  confirmButton: {
+    backgroundColor: "#FF8200",
+    marginHorizontal: 20,
+    marginTop: 16,
+    marginBottom: Platform.OS === "ios" ? 34 : 20,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  confirmButtonDisabled: {
+    backgroundColor: "#e0e0e0",
+  },
+  confirmButtonText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#fff",
   },
 });

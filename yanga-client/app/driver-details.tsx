@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import Constants from "expo-constants";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useMemo, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import {
   Dimensions,
   Image,
@@ -11,9 +12,15 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
+import MapViewDirections from "react-native-maps-directions";
 
 const { width, height } = Dimensions.get("window");
+
+const GOOGLE_MAPS_API_KEY =
+  Constants.expoConfig?.extra?.googleMapsApiKey ||
+  process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
+  "";
 
 // Image assets from Figma
 const imgDriverPhoto =
@@ -22,12 +29,13 @@ const imgDriverPhoto =
 export default function DriverDetails() {
   const params = useLocalSearchParams();
   const bottomSheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ["70%", "100%"], []);
+  const mapRef = useRef<MapView>(null);
+  const snapPoints = useMemo(() => ["65%", "90%"], []);
 
   const pickupLocation = (params.from as string) || "MX studio";
   const dropoffLocation = (params.to as string) || "Namy code street";
-  const carType = (params.carType as string) || "Toyota orange corolla";
-  const price = (params.price as string) || "k 50.00";
+  const carType = (params.carType as string) || "Comfort";
+  const price = (params.price as string) || "K 30";
 
   // Sample coordinates
   const currentLocation = {
@@ -51,38 +59,85 @@ export default function DriverDetails() {
     Linking.openURL("tel:+260123456789");
   };
 
+  const handleMessage = () => {
+    // Handle messaging
+    console.log("Message driver");
+  };
+
   const handleCancelRide = () => {
     router.back();
   };
+
+  // Auto-fit map to route
+  useEffect(() => {
+    if (mapRef.current) {
+      setTimeout(() => {
+        mapRef.current?.fitToCoordinates([currentLocation, destinationCoords], {
+          edgePadding: { top: 100, right: 50, bottom: 500, left: 50 },
+          animated: true,
+        });
+      }, 500);
+    }
+  }, []);
 
   return (
     <View style={styles.container}>
       {/* Map */}
       <MapView
+        ref={mapRef}
         provider={PROVIDER_GOOGLE}
         style={styles.map}
         initialRegion={region}
+        showsMyLocationButton={false}
+        showsUserLocation
       >
         {/* Pickup Marker */}
-        <Marker coordinate={currentLocation} title="Pickup Location">
+        <Marker
+          coordinate={currentLocation}
+          title="Pickup Location"
+          anchor={{ x: 0.5, y: 0.5 }}
+        >
           <View style={styles.pickupMarker}>
-            <Ionicons name="location" size={24} color="#FF8200" />
+            <View style={styles.markerDot} />
           </View>
         </Marker>
 
         {/* Dropoff Marker */}
-        <Marker coordinate={destinationCoords} title="Dropoff Location">
-          <View style={styles.dropoffMarker}>
-            <Ionicons name="location" size={24} color="#36D000" />
+        <Marker
+          coordinate={destinationCoords}
+          title="Dropoff Location"
+          anchor={{ x: 0.5, y: 1 }}
+        >
+          <View style={styles.destinationMarker}>
+            <View style={styles.markerPin}>
+              <Ionicons name="location-sharp" size={20} color="#000" />
+            </View>
           </View>
         </Marker>
 
-        {/* Route Polyline */}
-        <Polyline
-          coordinates={[currentLocation, destinationCoords]}
-          strokeColor="#FF8200"
-          strokeWidth={4}
-        />
+        {/* Route Polyline - Google Maps style */}
+        {GOOGLE_MAPS_API_KEY && (
+          <>
+            <MapViewDirections
+              origin={currentLocation}
+              destination={destinationCoords}
+              apikey={GOOGLE_MAPS_API_KEY}
+              strokeWidth={8}
+              strokeColor="rgba(0, 0, 0, 0.3)"
+              mode="DRIVING"
+              precision="high"
+            />
+            <MapViewDirections
+              origin={currentLocation}
+              destination={destinationCoords}
+              apikey={GOOGLE_MAPS_API_KEY}
+              strokeWidth={5}
+              strokeColor="#000"
+              mode="DRIVING"
+              precision="high"
+            />
+          </>
+        )}
       </MapView>
 
       {/* Driver Details Bottom Sheet */}
@@ -94,64 +149,52 @@ export default function DriverDetails() {
         backgroundStyle={styles.bottomSheetBackground}
         handleIndicatorStyle={styles.handleIndicator}
       >
-        {/* Orange Header Section */}
-        <View style={styles.headerSection}>
-          {/* Left side: Driver info and rating */}
-          <View style={styles.driverInfoSection}>
-            <View style={styles.driverDetails}>
-              <Text style={styles.driverName}>Namy code</Text>
-              <View style={styles.ratingContainer}>
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Ionicons
-                    key={star}
-                    name="star"
-                    size={14}
-                    color="#FFD700"
-                    style={styles.starIcon}
-                  />
-                ))}
-              </View>
-            </View>
-          </View>
-
-          {/* Right side: Driver photo and close button */}
-          <View style={styles.driverPhotoSection}>
-            <Image
-              source={{ uri: imgDriverPhoto }}
-              style={styles.driverPhoto}
-            />
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={handleCancelRide}
-            >
-              <Ionicons name="close" size={20} color="#fff" />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Call Button (positioned on top of content) */}
-        <TouchableOpacity style={styles.callButton} onPress={handleCall}>
-          <Ionicons name="call" size={18} color="#36D000" />
-        </TouchableOpacity>
-
         <BottomSheetScrollView
           style={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.arrivalText}>
-            Your ride is arriving in 10 min
-          </Text>
+          {/* Driver Info Header */}
+          <View style={styles.driverHeader}>
+            <Image
+              source={{ uri: imgDriverPhoto }}
+              style={styles.driverPhoto}
+            />
+            <View style={styles.driverInfo}>
+              <Text style={styles.driverName}>Namy Code</Text>
+              <View style={styles.ratingRow}>
+                <Ionicons name="star" size={16} color="#000" />
+                <Text style={styles.ratingText}>4.9</Text>
+                <Text style={styles.ratingCount}>(245 trips)</Text>
+              </View>
+              <View style={styles.carInfo}>
+                <Text style={styles.carText}>{carType} • </Text>
+                <Text style={styles.plateText}>BCC-3213</Text>
+              </View>
+            </View>
+            <View style={styles.actionButtons}>
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={handleMessage}
+              >
+                <Ionicons name="chatbubble-outline" size={22} color="#000" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.iconButton} onPress={handleCall}>
+                <Ionicons name="call-outline" size={22} color="#000" />
+              </TouchableOpacity>
+            </View>
+          </View>
 
-          {/* Car Details Card */}
-          <View style={styles.carCard}>
-            <Text style={styles.cardTitle}>Car Type:</Text>
-            <Text style={styles.carDetails}>Toyota</Text>
-            <Text style={styles.carDetails}>orange corolla BCC-3213</Text>
+          {/* Arrival Time */}
+          <View style={styles.arrivalSection}>
+            <View style={styles.arrivalBadge}>
+              <Ionicons name="time-outline" size={18} color="#000" />
+              <Text style={styles.arrivalText}>Arrives in 3 min</Text>
+            </View>
           </View>
 
           {/* Trip Route */}
           <View style={styles.routeSection}>
-            <Text style={styles.sectionTitle}>Trip Route</Text>
+            <Text style={styles.sectionTitle}>Trip details</Text>
 
             <View style={styles.routeContainer}>
               {/* Pickup */}
@@ -160,8 +203,8 @@ export default function DriverDetails() {
                   <View style={styles.pickupDot} />
                 </View>
                 <View style={styles.routeTextContainer}>
+                  <Text style={styles.locationLabel}>Pickup</Text>
                   <Text style={styles.locationName}>{pickupLocation}</Text>
-                  <Text style={styles.locationSubtext}>chalala</Text>
                 </View>
               </View>
 
@@ -171,43 +214,29 @@ export default function DriverDetails() {
               {/* Dropoff */}
               <View style={styles.routeRow}>
                 <View style={styles.routeIconContainer}>
-                  <Ionicons name="location" size={20} color="#FF8200" />
+                  <Ionicons name="location-sharp" size={18} color="#000" />
                 </View>
                 <View style={styles.routeTextContainer}>
-                  <View style={styles.locationRow}>
-                    <Text style={styles.locationName}>{dropoffLocation}</Text>
-                    <Text style={styles.editText}>Edit</Text>
-                  </View>
-                  <Text style={styles.locationSubtext}>game zone</Text>
+                  <Text style={styles.locationLabel}>Dropoff</Text>
+                  <Text style={styles.locationName}>{dropoffLocation}</Text>
                 </View>
               </View>
             </View>
           </View>
 
-          {/* Add a stop */}
-          <TouchableOpacity style={styles.addStopButton}>
-            <Ionicons name="add-circle-outline" size={20} color="#FF8200" />
-            <Text style={styles.addStopText}>Add a stop</Text>
-          </TouchableOpacity>
-
-          {/* Total Amount */}
-          <View style={styles.totalContainer}>
-            <Text style={styles.totalLabel}>Total Amount</Text>
-            <Text style={styles.totalPrice}>{price}</Text>
+          {/* Price */}
+          <View style={styles.priceSection}>
+            <Text style={styles.priceLabel}>Estimated fare</Text>
+            <Text style={styles.priceValue}>{price}</Text>
           </View>
 
           {/* Cancel Button */}
           <TouchableOpacity
             style={styles.cancelButton}
             onPress={handleCancelRide}
+            activeOpacity={0.7}
           >
-            <Text style={styles.cancelButtonText}>Cancel Ride</Text>
-            <Ionicons
-              name="arrow-forward"
-              size={20}
-              color="#fff"
-              style={styles.cancelArrow}
-            />
+            <Text style={styles.cancelButtonText}>Cancel trip</Text>
           </TouchableOpacity>
         </BottomSheetScrollView>
       </BottomSheet>
@@ -225,257 +254,234 @@ const styles = StyleSheet.create({
     height: height,
   },
   pickupMarker: {
-    backgroundColor: "#FFF5EC",
-    padding: 8,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: "#FF8200",
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#fff",
+    borderWidth: 3,
+    borderColor: "#000",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
-  dropoffMarker: {
-    backgroundColor: "#E8F9E8",
-    padding: 8,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: "#36D000",
+  markerDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#000",
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    marginTop: -5,
+    marginLeft: -5,
+  },
+  destinationMarker: {
+    alignItems: "center",
+  },
+  markerPin: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
   bottomSheetBackground: {
     backgroundColor: "#fff",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 8,
   },
   handleIndicator: {
-    backgroundColor: "#E0E0E0",
-    width: 40,
-    height: 4,
-  },
-  headerSection: {
-    backgroundColor: "#FF8200",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    minHeight: 120,
-  },
-  driverInfoSection: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  driverDetails: {
-    justifyContent: "center",
-  },
-  driverName: {
-    fontFamily: "Lato-Bold",
-    fontSize: 20,
-    color: "#fff",
-    marginBottom: 8,
-  },
-  ratingContainer: {
-    flexDirection: "row",
-    gap: 2,
-  },
-  starIcon: {
-    marginRight: 2,
-  },
-  driverPhotoSection: {
-    position: "relative",
-    alignItems: "flex-end",
-  },
-  driverPhoto: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    borderWidth: 3,
-    borderColor: "#fff",
-  },
-  closeButton: {
-    position: "absolute",
-    top: -8,
-    right: -8,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  callButton: {
-    position: "absolute",
-    right: 20,
-    top: 120,
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    zIndex: 10,
+    backgroundColor: "#D1D1D6",
+    width: 36,
+    height: 5,
+    borderRadius: 3,
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 30,
-    paddingBottom: 20,
+    paddingTop: 8,
   },
-  arrivalText: {
-    fontFamily: "Lato-Bold",
-    fontSize: 16,
-    color: "#111",
+  driverHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
     marginBottom: 16,
   },
-  carCard: {
-    backgroundColor: "transparent",
-    borderRadius: 0,
-    padding: 0,
-    marginBottom: 24,
-    borderLeftWidth: 0,
-    borderLeftColor: "transparent",
+  driverPhoto: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#F0F0F0",
   },
-  cardTitle: {
-    fontFamily: "Lato-Bold",
-    fontSize: 14,
-    color: "#111",
+  driverInfo: {
+    flex: 1,
+    marginLeft: 14,
+  },
+  driverName: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#000",
     marginBottom: 4,
   },
-  carDetails: {
-    fontFamily: "Lato-Regular",
+  ratingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  ratingText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#000",
+    marginLeft: 4,
+  },
+  ratingCount: {
     fontSize: 14,
-    color: "#111",
-    lineHeight: 20,
+    fontWeight: "400",
+    color: "#8E8E93",
+    marginLeft: 4,
   },
-  carPlate: {
-    fontFamily: "Lato-Regular",
-    fontSize: 12,
-    color: "#757575",
+  carInfo: {
+    flexDirection: "row",
+    alignItems: "center",
   },
-  divider: {
-    height: 1,
-    backgroundColor: "#E0E0E0",
-    marginVertical: 16,
+  carText: {
+    fontSize: 14,
+    fontWeight: "400",
+    color: "#000",
   },
-  routeSection: {
+  plateText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#000",
+  },
+  actionButtons: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#F7F7F7",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E5E5E5",
+  },
+  arrivalSection: {
     marginBottom: 20,
   },
-  section: {
-    marginBottom: 16,
+  arrivalBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F7F7F7",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 8,
+  },
+  arrivalText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#000",
+  },
+  routeSection: {
+    marginBottom: 24,
   },
   sectionTitle: {
-    fontFamily: "Lato-Bold",
-    fontSize: 16,
-    color: "#111",
-    marginBottom: 14,
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#000",
+    marginBottom: 16,
   },
   routeContainer: {
-    marginTop: 0,
+    backgroundColor: "#F7F7F7",
+    borderRadius: 12,
+    padding: 16,
   },
   routeRow: {
     flexDirection: "row",
-    alignItems: "center", // Changed from flex-start to center
-    marginBottom: 12,
+    alignItems: "flex-start",
   },
   routeIconContainer: {
-    width: 28,
+    width: 24,
     alignItems: "center",
     paddingTop: 2,
   },
   pickupDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#36D000",
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#000",
   },
   connectingLine: {
     width: 2,
-    height: 40,
-    backgroundColor: "#E0E0E0",
-    marginLeft: 13,
-    marginVertical: 2,
+    height: 24,
+    backgroundColor: "#C7C7CC",
+    marginLeft: 11,
+    marginVertical: 8,
   },
   routeTextContainer: {
     flex: 1,
-    marginLeft: 14,
-  },
-  locationRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    width: "100%",
-  },
-  routeDetails: {
-    flex: 1,
     marginLeft: 12,
   },
-  locationName: {
-    fontFamily: "Lato-Bold",
-    fontSize: 14,
-    color: "#111",
+  locationLabel: {
+    fontSize: 13,
+    fontWeight: "400",
+    color: "#8E8E93",
     marginBottom: 2,
   },
-  locationSubtext: {
-    fontFamily: "Lato-Regular",
-    fontSize: 12,
-    color: "#757575",
-  },
-  editText: {
-    fontFamily: "Lato-Bold",
-    fontSize: 13,
-    color: "#111",
-  },
-  addStopButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 14,
-    gap: 10,
-    marginBottom: 20,
-  },
-  addStopText: {
-    fontFamily: "Lato-Bold",
+  locationName: {
     fontSize: 15,
-    color: "#FF8200",
+    fontWeight: "500",
+    color: "#000",
   },
-  totalContainer: {
+  priceSection: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    backgroundColor: "#F7F7F7",
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 20,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginBottom: 24,
   },
-  totalLabel: {
-    fontFamily: "Lato-Bold",
-    fontSize: 14,
-    color: "#111",
+  priceLabel: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: "#000",
   },
-  totalPrice: {
-    fontFamily: "Lato-Bold",
-    fontSize: 16,
-    color: "#111",
+  priceValue: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#000",
   },
   cancelButton: {
-    backgroundColor: "#EC1A1A",
-    borderRadius: 50,
+    backgroundColor: "#F7F7F7",
+    borderRadius: 12,
     paddingVertical: 16,
-    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 20,
+    marginBottom: 30,
     borderWidth: 1,
-    borderColor: "#C41010",
-  },
-  cancelIcon: {
-    marginRight: 8,
+    borderColor: "#E5E5E5",
   },
   cancelButtonText: {
-    fontFamily: "Lato-Bold",
     fontSize: 16,
-    color: "#fff",
-  },
-  cancelArrow: {
-    marginLeft: 8,
+    fontWeight: "600",
+    color: "#000",
   },
 });

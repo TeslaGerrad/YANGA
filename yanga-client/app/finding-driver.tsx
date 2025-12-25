@@ -1,20 +1,36 @@
 import { Ionicons } from "@expo/vector-icons";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
+import Constants from "expo-constants";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Dimensions, StyleSheet, Text, View } from "react-native";
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
+import {
+  Animated,
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
+import MapViewDirections from "react-native-maps-directions";
 
 const { width, height } = Dimensions.get("window");
+
+const GOOGLE_MAPS_API_KEY =
+  Constants.expoConfig?.extra?.googleMapsApiKey ||
+  process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
+  "";
 
 export default function FindingDriver() {
   const params = useLocalSearchParams();
   const bottomSheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ["50%"], []);
+  const mapRef = useRef<MapView>(null);
+  const snapPoints = useMemo(() => ["45%"], []);
 
   const [dots, setDots] = useState("");
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
   const pickupLocation = (params.from as string) || "Current Location";
   const dropoffLocation = (params.to as string) || "Destination";
@@ -52,28 +68,46 @@ export default function FindingDriver() {
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 1.2,
-          duration: 1000,
+          toValue: 1.15,
+          duration: 1200,
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 1000,
+          duration: 1200,
           useNativeDriver: true,
         }),
       ])
     ).start();
   }, []);
 
-  // Rotate animation for spinner
+  // Fade and scale in animation
   useEffect(() => {
-    Animated.loop(
-      Animated.timing(rotateAnim, {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 2000,
+        duration: 600,
         useNativeDriver: true,
-      })
-    ).start();
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 20,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  // Auto-fit map to route
+  useEffect(() => {
+    if (mapRef.current) {
+      setTimeout(() => {
+        mapRef.current?.fitToCoordinates([currentLocation, destinationCoords], {
+          edgePadding: { top: 100, right: 50, bottom: 400, left: 50 },
+          animated: true,
+        });
+      }, 500);
+    }
   }, []);
 
   // Navigate to driver details after 10 seconds
@@ -93,33 +127,67 @@ export default function FindingDriver() {
     return () => clearTimeout(timer);
   }, [pickupLocation, dropoffLocation, carType, price]);
 
-  const spin = rotateAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0deg", "360deg"],
-  });
+  const handleCancel = () => {
+    router.back();
+  };
 
   return (
     <View style={styles.container}>
       <MapView
+        ref={mapRef}
         style={styles.map}
         provider={PROVIDER_GOOGLE}
         initialRegion={region}
+        showsMyLocationButton={false}
+        showsUserLocation
       >
-        <Marker coordinate={currentLocation} title="Pickup">
+        {/* Pickup Marker */}
+        <Marker
+          coordinate={currentLocation}
+          title="Pickup"
+          anchor={{ x: 0.5, y: 0.5 }}
+        >
           <View style={styles.pickupMarker}>
-            <Ionicons name="location" size={20} color="#FF8200" />
+            <View style={styles.markerDot} />
           </View>
         </Marker>
-        <Marker coordinate={destinationCoords} title="Destination">
-          <View style={styles.dropoffMarker}>
-            <Ionicons name="location" size={20} color="#36D000" />
+
+        {/* Destination Marker */}
+        <Marker
+          coordinate={destinationCoords}
+          title="Destination"
+          anchor={{ x: 0.5, y: 1 }}
+        >
+          <View style={styles.destinationMarker}>
+            <View style={styles.markerPin}>
+              <Ionicons name="location-sharp" size={20} color="#000" />
+            </View>
           </View>
         </Marker>
-        <Polyline
-          coordinates={[currentLocation, destinationCoords]}
-          strokeColor="#FF8200"
-          strokeWidth={3}
-        />
+
+        {/* Navigation Polyline */}
+        {GOOGLE_MAPS_API_KEY && (
+          <>
+            <MapViewDirections
+              origin={currentLocation}
+              destination={destinationCoords}
+              apikey={GOOGLE_MAPS_API_KEY}
+              strokeWidth={8}
+              strokeColor="rgba(0, 0, 0, 0.3)"
+              mode="DRIVING"
+              precision="high"
+            />
+            <MapViewDirections
+              origin={currentLocation}
+              destination={destinationCoords}
+              apikey={GOOGLE_MAPS_API_KEY}
+              strokeWidth={5}
+              strokeColor="#000"
+              mode="DRIVING"
+              precision="high"
+            />
+          </>
+        )}
       </MapView>
 
       <BottomSheet
@@ -127,14 +195,23 @@ export default function FindingDriver() {
         snapPoints={snapPoints}
         backgroundStyle={styles.bottomSheetBackground}
         handleIndicatorStyle={styles.handleIndicator}
+        enablePanDownToClose={false}
       >
         <BottomSheetView style={styles.contentContainer}>
           {/* Animated Loading Section */}
-          <View style={styles.loadingSection}>
+          <Animated.View
+            style={[
+              styles.loadingSection,
+              {
+                opacity: fadeAnim,
+                transform: [{ scale: scaleAnim }],
+              },
+            ]}
+          >
             <View style={styles.loaderContainer}>
               <Animated.View
                 style={[
-                  styles.pulseCircle,
+                  styles.pulseOuter,
                   {
                     transform: [{ scale: pulseAnim }],
                   },
@@ -142,29 +219,28 @@ export default function FindingDriver() {
               />
               <Animated.View
                 style={[
-                  styles.spinnerContainer,
+                  styles.pulseMiddle,
                   {
-                    transform: [{ rotate: spin }],
+                    transform: [{ scale: pulseAnim }],
                   },
                 ]}
-              >
-                <View style={styles.spinner}>
-                  <View style={styles.spinnerDot} />
-                </View>
-              </Animated.View>
+              />
+              <View style={styles.carIcon}>
+                <Ionicons name="car-sport" size={28} color="#000" />
+              </View>
             </View>
 
             <Text style={styles.title}>Finding your driver{dots}</Text>
             <Text style={styles.subtitle}>
-              This usually takes a few seconds
+              We're connecting you with nearby drivers
             </Text>
-          </View>
+          </Animated.View>
 
           {/* Trip Summary Card */}
           <View style={styles.tripCard}>
             <View style={styles.tripHeader}>
               <View style={styles.carTypeContainer}>
-                <Ionicons name="car-sport" size={20} color="#FF8200" />
+                <Ionicons name="car-sport-outline" size={22} color="#000" />
                 <Text style={styles.carTypeText}>{carType}</Text>
               </View>
               <Text style={styles.priceText}>{price}</Text>
@@ -181,7 +257,7 @@ export default function FindingDriver() {
               <View style={styles.routeLine} />
 
               <View style={styles.routeItem}>
-                <Ionicons name="location-sharp" size={18} color="#FF8200" />
+                <Ionicons name="location-sharp" size={16} color="#000" />
                 <Text style={styles.routeText} numberOfLines={1}>
                   {dropoffLocation}
                 </Text>
@@ -189,11 +265,14 @@ export default function FindingDriver() {
             </View>
           </View>
 
-          {/* Status Message */}
-          <View style={styles.statusContainer}>
-            <View style={styles.statusDot} />
-            <Text style={styles.statusText}>Searching for nearby drivers</Text>
-          </View>
+          {/* Cancel Button */}
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={handleCancel}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </TouchableOpacity>
         </BottomSheetView>
       </BottomSheet>
     </View>
@@ -210,134 +289,149 @@ const styles = StyleSheet.create({
     height: height,
   },
   pickupMarker: {
-    padding: 8,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: "#FF8200",
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#fff",
+    borderWidth: 3,
+    borderColor: "#000",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
-  dropoffMarker: {
-    padding: 8,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: "#36D000",
+  markerDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#000",
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    marginTop: -5,
+    marginLeft: -5,
+  },
+  destinationMarker: {
+    alignItems: "center",
+  },
+  markerPin: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
   bottomSheetBackground: {
     backgroundColor: "#fff",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 12,
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 8,
   },
   handleIndicator: {
-    backgroundColor: "#E0E0E0",
-    width: 40,
-    height: 4,
+    backgroundColor: "#D1D1D6",
+    width: 36,
+    height: 5,
+    borderRadius: 3,
   },
   contentContainer: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 28,
-    paddingBottom: 20,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 30,
   },
   loadingSection: {
     alignItems: "center",
-    marginBottom: 32,
+    marginBottom: 28,
   },
   loaderContainer: {
-    height: 100,
-    width: 100,
+    height: 90,
+    width: 90,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 20,
     position: "relative",
   },
-  pulseCircle: {
+  pulseOuter: {
     position: "absolute",
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "rgba(255, 130, 0, 0.08)",
-    borderWidth: 2,
-    borderColor: "rgba(255, 130, 0, 0.2)",
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: "rgba(0, 0, 0, 0.04)",
   },
-  spinnerContainer: {
-    width: 60,
-    height: 60,
+  pulseMiddle: {
+    position: "absolute",
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: "rgba(0, 0, 0, 0.08)",
+  },
+  carIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
-  },
-  spinner: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 3,
-    borderColor: "#F5F5F5",
-    borderTopColor: "#FF8200",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  spinnerDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#FF8200",
-    position: "absolute",
-    top: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   title: {
-    fontSize: 24,
-    fontFamily: "Lato-Bold",
-    color: "#1A1A1A",
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#000",
     textAlign: "center",
-    marginBottom: 8,
-    letterSpacing: -0.5,
+    marginBottom: 6,
+    letterSpacing: -0.3,
   },
   subtitle: {
     fontSize: 15,
-    fontFamily: "Lato-Regular",
+    fontWeight: "400",
     color: "#8E8E93",
     textAlign: "center",
   },
   tripCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: "#F7F7F7",
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
   },
   tripHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
-    paddingBottom: 16,
+    marginBottom: 16,
+    paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
+    borderBottomColor: "#E5E5E5",
   },
   carTypeContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
   },
   carTypeText: {
-    fontSize: 17,
-    fontFamily: "Lato-Bold",
-    color: "#1A1A1A",
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#000",
   },
   priceText: {
     fontSize: 20,
-    fontFamily: "Lato-Bold",
-    color: "#FF8200",
+    fontWeight: "700",
+    color: "#000",
   },
   routeDetails: {
     gap: 0,
@@ -349,49 +443,35 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   routeDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#36D000",
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
-    shadowColor: "#36D000",
-    shadowOffset: {
-      width: 0,
-      height: 0,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#000",
   },
   routeLine: {
     width: 2,
     height: 20,
-    backgroundColor: "#E5E5E5",
-    marginLeft: 4,
+    backgroundColor: "#C7C7CC",
+    marginLeft: 3,
     marginVertical: 2,
   },
   routeText: {
     flex: 1,
     fontSize: 15,
-    fontFamily: "Lato-Regular",
-    color: "#3C3C43",
+    fontWeight: "400",
+    color: "#000",
   },
-  statusContainer: {
-    flexDirection: "row",
+  cancelButton: {
+    backgroundColor: "#F7F7F7",
+    borderRadius: 12,
+    paddingVertical: 16,
     alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: "#E5E5E5",
   },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#FF8200",
-  },
-  statusText: {
-    fontSize: 13,
-    fontFamily: "Lato-Regular",
-    color: "#8E8E93",
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#000",
   },
 });
