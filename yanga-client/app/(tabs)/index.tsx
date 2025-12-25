@@ -19,6 +19,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import MapViewDirections from "react-native-maps-directions";
 
@@ -334,98 +335,101 @@ export default function HomeScreen() {
       </TouchableOpacity>
 
       {/* Draggable Bottom Sheet */}
-      <BottomSheet
-        ref={bottomSheetRef}
-        index={0}
-        snapPoints={snapPoints}
-        backgroundStyle={styles.bottomSheetBackground}
-        handleIndicatorStyle={styles.handleIndicator}
-      >
-        <BottomSheetScrollView
-          style={styles.bottomSheetContent}
-          showsVerticalScrollIndicator={false}
+     
+        <BottomSheet
+          ref={bottomSheetRef}
+          index={0}
+          snapPoints={snapPoints}
+          backgroundStyle={styles.bottomSheetBackground}
+          handleIndicatorStyle={styles.handleIndicator}
+          android_keyboardInputMode="adjustResize"
         >
-          {/* Where To Button */}
-          <TouchableOpacity
-            style={styles.whereToButton}
-            activeOpacity={0.9}
-            onPress={() => router.push("/search-destination")}
+          <BottomSheetScrollView
+            contentContainerStyle={styles.bottomSheetContent}
+            showsVerticalScrollIndicator={false}
           >
-            <View style={styles.whereToContent}>
-              <View style={styles.searchIconContainer}>
-                <Ionicons name="search" size={20} color="#FF8200" />
-              </View>
-              <Text style={styles.whereToText}>Where to?</Text>
-            </View>
-          </TouchableOpacity>
-
-          {/* Quick Actions */}
-          <View style={styles.quickActions}>
+            {/* Where To Button */}
             <TouchableOpacity
-              style={styles.quickActionButton}
-              onPress={() => setShowScheduleModal(true)}
+              style={styles.whereToButton}
+              activeOpacity={0.9}
+              onPress={() => router.push("/search-destination")}
             >
-              <View style={styles.quickActionIcon}>
-                <Ionicons name="time-outline" size={18} color="#000" />
+              <View style={styles.whereToContent}>
+                <View style={styles.searchIconContainer}>
+                  <Ionicons name="search" size={20} color="#FF8200" />
+                </View>
+                <Text style={styles.whereToText}>Where to?</Text>
               </View>
-              <Text style={styles.quickActionText}>Schedule</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.quickActionButton}>
-              <View style={styles.quickActionIcon}>
-                <Ionicons name="heart-outline" size={18} color="#000" />
-              </View>
-              <Text style={styles.quickActionText}>Favorites</Text>
-            </TouchableOpacity>
-          </View>
+            {/* Quick Actions */}
+            <View style={styles.quickActions}>
+              <TouchableOpacity
+                style={styles.quickActionButton}
+                onPress={() => setShowScheduleModal(true)}
+              >
+                <View style={styles.quickActionIcon}>
+                  <Ionicons name="time-outline" size={18} color="#000" />
+                </View>
+                <Text style={styles.quickActionText}>Schedule</Text>
+              </TouchableOpacity>
 
-          {/* Ride History Section */}
-          {rideHistory.length > 0 && (
-            <View style={styles.historySection}>
-              <Text style={styles.historyTitle}>Recent trips</Text>
-              {rideHistory.map((ride) => (
-                <TouchableOpacity
-                  key={ride.id}
-                  style={styles.historyItem}
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    // Navigate to ride details or rebook
-                    console.log("Selected ride:", ride);
-                  }}
-                >
-                  <View style={styles.historyIconContainer}>
-                    <Ionicons name="time-outline" size={20} color="#666" />
-                  </View>
-                  <View style={styles.historyDetails}>
-                    <View style={styles.historyRoute}>
-                      <Text style={styles.historyLocation} numberOfLines={1}>
-                        {ride.from}
-                      </Text>
-                      <Ionicons
-                        name="arrow-forward"
-                        size={14}
-                        color="#999"
-                        style={{ marginHorizontal: 6 }}
-                      />
-                      <Text style={styles.historyLocation} numberOfLines={1}>
-                        {ride.to}
-                      </Text>
-                    </View>
-                    <View style={styles.historyMeta}>
-                      <Text style={styles.historyDate}>{ride.date}</Text>
-                      <Text style={styles.historyDot}>•</Text>
-                      <Text style={styles.historyDistance}>
-                        {ride.distance}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text style={styles.historyPrice}>{ride.price}</Text>
-                </TouchableOpacity>
-              ))}
+              <TouchableOpacity style={styles.quickActionButton}>
+                <View style={styles.quickActionIcon}>
+                  <Ionicons name="heart-outline" size={18} color="#000" />
+                </View>
+                <Text style={styles.quickActionText}>Favorites</Text>
+              </TouchableOpacity>
             </View>
-          )}
-        </BottomSheetScrollView>
-      </BottomSheet>
+
+            {/* Ride History Section */}
+            {rideHistory.length > 0 && (
+              <View style={styles.historySection}>
+                <Text style={styles.historyTitle}>Recent trips</Text>
+                {rideHistory.map((ride) => (
+                  <TouchableOpacity
+                    key={ride.id}
+                    style={styles.historyItem}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      // Navigate to ride details or rebook
+                      console.log("Selected ride:", ride);
+                    }}
+                  >
+                    <View style={styles.historyIconContainer}>
+                      <Ionicons name="time-outline" size={20} color="#666" />
+                    </View>
+                    <View style={styles.historyDetails}>
+                      <View style={styles.historyRoute}>
+                        <Text style={styles.historyLocation} numberOfLines={1}>
+                          {ride.from}
+                        </Text>
+                        <Ionicons
+                          name="arrow-forward"
+                          size={14}
+                          color="#999"
+                          style={{ marginHorizontal: 6 }}
+                        />
+                        <Text style={styles.historyLocation} numberOfLines={1}>
+                          {ride.to}
+                        </Text>
+                      </View>
+                      <View style={styles.historyMeta}>
+                        <Text style={styles.historyDate}>{ride.date}</Text>
+                        <Text style={styles.historyDot}>•</Text>
+                        <Text style={styles.historyDistance}>
+                          {ride.distance}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.historyPrice}>{ride.price}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </BottomSheetScrollView>
+        </BottomSheet>
+   
 
       {/* Schedule Ride Modal */}
       <ScheduleRideModal
@@ -666,6 +670,7 @@ const styles = StyleSheet.create({
   },
   bottomSheetContent: {
     paddingHorizontal: 16,
+    paddingTop: 8,
     paddingBottom: Platform.OS === "ios" ? 34 : 20,
   },
 
